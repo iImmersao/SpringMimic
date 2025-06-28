@@ -18,8 +18,8 @@ public class UserController {
     }
 
     @GetMapping("/users/{id}")
-    public String getUser(@PathVariable("id") String id, @RequestParam("verbose") boolean verbose) {
-        return "User ID: " + id + ", verbose=" + verbose;
+    public String getUser(@PathVariable("id") String id, @RequestParam("verbose") boolean verbose, @RequestParam("max") int max) {
+        return "User ID: " + id + ", verbose=" + verbose + ", max=" + max;
     }
 
     @GetMapping("/posts/{postId}/comments/{commentId}")
@@ -40,24 +40,3 @@ public class UserController {
     }
 }
 
-/*
-public class UserController {
-
-    @Get("/users/{id}")
-    public String getUser(
-            @PathVariable("id") String userId,
-            @RequestParam("verbose") boolean verbose) {
-        if (verbose) {
-            return "User Details for user id: " + userId + " [with verbose info]";
-        } else {
-            return "User Summary for user id: " + userId;
-        }
-    }
-
-    @Get("/greet")
-    public String greet(
-            @RequestParam("name") String name) {
-        return "Hello, " + name + "!";
-    }
-}
- */

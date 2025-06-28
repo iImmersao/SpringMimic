@@ -1,14 +1,12 @@
 package com.iimmersao.springmimic;
 
 import com.iimmersao.springmimic.core.ApplicationContext;
-import com.iimmersao.springmimic.core.ComponentScanner;
 import com.iimmersao.springmimic.core.ConfigLoader;
 import com.iimmersao.springmimic.server.WebServer;
-import com.iimmersao.springmimic.web.Router;
+import com.iimmersao.springmimic.routing.Router;
 import fi.iki.elonen.NanoHTTPD;
 
 import java.io.IOException;
-import java.util.Scanner;
 import java.util.Set;
 
 public class Main {

@@ -1,4 +1,4 @@
-package com.iimmersao.springmimic.web;
+package com.iimmersao.springmimic.routing;
 
 //package core.routing;
 

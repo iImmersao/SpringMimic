@@ -1,10 +1,10 @@
 package com.iimmersao.springmimic.core;
 
 import com.iimmersao.springmimic.annotations.*;
+
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ScanResult;
 
-import java.lang.reflect.*;
 import java.util.*;
 import java.util.stream.Collectors;
 

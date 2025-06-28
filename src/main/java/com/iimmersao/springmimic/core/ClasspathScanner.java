@@ -3,7 +3,6 @@ package com.iimmersao.springmimic.core;
 import java.io.*;
 import java.net.*;
 import java.util.*;
-import java.util.stream.*;
 
 public class ClasspathScanner {
 

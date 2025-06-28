@@ -1,8 +1,7 @@
 package com.iimmersao.springmimic.server;
 
-import com.iimmersao.springmimic.core.ApplicationContext;
-import com.iimmersao.springmimic.web.Router;
-import com.iimmersao.springmimic.web.RouteHandler;
+import com.iimmersao.springmimic.routing.Router;
+import com.iimmersao.springmimic.routing.RouteHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.iki.elonen.NanoHTTPD;
 
@@ -60,23 +59,5 @@ public class WebServer extends NanoHTTPD {
             return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "Route not found");
         }
     }
-
-    /*
-    @Override
-    public Response serve(IHTTPSession session) {
-        Optional<RouteHandler> optHandler = router.findHandler(session.getUri(), session.getMethod().name());
-        if (optHandler.isPresent()) {
-            try {
-                RouteHandler handler = optHandler.get();
-                Object result = handler.invoke(session);
-                return newFixedLengthResponse(result.toString());
-            } catch (Exception e) {
-                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "Error: " + e.getMessage());
-            }
-        } else {
-            return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "Route not found");
-        }
-    }
-    */
 
 }

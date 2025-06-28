@@ -1,4 +1,4 @@
-package com.iimmersao.springmimic.web;
+package com.iimmersao.springmimic.routing;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,7 +9,6 @@ import fi.iki.elonen.NanoHTTPD;
 
 import java.lang.reflect.*;
 import java.util.*;
-import java.util.regex.*;
 
 public class RouteHandler {
     private final Object controller;
@@ -69,6 +68,7 @@ public class RouteHandler {
         return pathVariables;
     }
 
+    /*
     private Object convert(String value, Class<?> type) {
         if (value == null) return null;
         if (type == String.class) return value;
@@ -78,4 +78,32 @@ public class RouteHandler {
         // Add more types as needed
         throw new IllegalArgumentException("Unsupported parameter type: " + type.getName());
     }
+     */
+
+    private Object convert(String value, Class<?> type) {
+        if (value == null) {
+            // Return default values for primitives, null for reference types
+            if (type == boolean.class) return false;
+            if (type == int.class) return 0;
+            if (type == long.class) return 0L;
+            return null;
+        }
+
+        try {
+            if (type == String.class) return value;
+            if (type == int.class || type == Integer.class) return Integer.parseInt(value);
+            if (type == long.class || type == Long.class) return Long.parseLong(value);
+            if (type == boolean.class || type == Boolean.class) {
+                if (!value.equalsIgnoreCase("true") && !value.equalsIgnoreCase("false")) {
+                    throw new IllegalArgumentException("Invalid boolean value: " + value);
+                }
+                return Boolean.parseBoolean(value);
+            }
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid format for type " + type.getSimpleName() + ": " + value);
+        }
+
+        throw new IllegalArgumentException("Unsupported parameter type: " + type.getName());
+    }
+
 }
