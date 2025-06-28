@@ -8,7 +8,6 @@ import io.github.classgraph.ScanResult;
 import java.util.*;
 import java.util.stream.Collectors;
 
-
 public class ApplicationContext {
     private final String basePackage;
 

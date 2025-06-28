@@ -10,52 +10,63 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class RouterTest {
+import com.iimmersao.springmimic.routing.Router;
+import com.iimmersao.springmimic.routing.RouteHandler;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-    private Router router;
+import java.lang.reflect.Method;
+import java.util.Set;
 
-    static class DummyController {
-        @GetMapping("/hello")
-        public String hello() {
-            return "Hello!";
+import static org.junit.jupiter.api.Assertions.*;
+
+public class RouterTest {
+
+    static class TestController {
+        @GetMapping("/users/{id}")
+        public String getUser(String id) {
+            return "User ID: " + id;
         }
 
-        @GetMapping("/users/{id}")
-        public String getUser(@PathVariable("id") String id) {
-            return "User " + id;
+        @GetMapping("/posts/{postId}/comments/{commentId}")
+        public String getComment(String postId, String commentId) {
+            return "Post " + postId + ", Comment " + commentId;
         }
     }
+
+    private Router router;
 
     @BeforeEach
     void setUp() {
         router = new Router();
-        router.registerControllers(Set.of(new DummyController()));
+        Set<Object> controllers = Set.of(new TestController());
+        router.registerControllers(controllers);
     }
 
     @Test
-    void shouldMatchExactPath() {
-        Optional<RouteHandler> handler = router.findHandler("GET", "/hello");
-        assertTrue(handler.isPresent());
+    void shouldMatchPathWithSingleVariable() {
+        String method = "GET";
+        String uri = "/users/abc123";
+
+        var handlerOpt = router.findHandler(method, uri);
+        assertTrue(handlerOpt.isPresent(), "Expected route to be found for /users/{id}");
     }
 
     @Test
-    void shouldMatchPathWithVariable() {
-        Optional<RouteHandler> handlerOpt = router.findHandler("GET", "/users/42");
-        assertTrue(handlerOpt.isPresent());
+    void shouldMatchPathWithMultipleVariables() {
+        String method = "GET";
+        String uri = "/posts/99/comments/123";
 
-        RouteHandler handler = handlerOpt.get();
-        assertEquals("42", handler.getPathVariables().get("id"));
+        var handlerOpt = router.findHandler(method, uri);
+        assertTrue(handlerOpt.isPresent(), "Expected route to be found for /posts/{postId}/comments/{commentId}");
     }
 
     @Test
-    void shouldRejectUnregisteredMethod() {
-        Optional<RouteHandler> handler = router.findHandler("POST", "/hello");
-        assertTrue(handler.isEmpty());
-    }
+    void shouldNotMatchUnknownRoute() {
+        String method = "GET";
+        String uri = "/unknown/path";
 
-    @Test
-    void shouldRejectUnknownPath() {
-        Optional<RouteHandler> handler = router.findHandler("GET", "/unknown");
-        assertTrue(handler.isEmpty());
+        var handlerOpt = router.findHandler(method, uri);
+        assertFalse(handlerOpt.isPresent(), "Expected no route to be found for /unknown/path");
     }
 }

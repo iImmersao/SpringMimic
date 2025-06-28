@@ -26,7 +26,9 @@ public class WebServer extends NanoHTTPD {
                 RouteHandler handler = optHandler.get();
                 Object result = handler.handle(session);
 
-                if (result instanceof String) {
+                if (result instanceof Response) {
+                    return (Response) result;
+                } else if (result instanceof String) {
                     String contentType;
                     String responseBody;
 

@@ -18,7 +18,9 @@ public class UserController {
     }
 
     @GetMapping("/users/{id}")
-    public String getUser(@PathVariable("id") String id, @RequestParam("verbose") boolean verbose, @RequestParam("max") int max) {
+    public String getUser(@PathVariable("id") String id,
+                          @RequestParam("verbose") Boolean verbose,
+                          @RequestParam("max") Integer max) {
         return "User ID: " + id + ", verbose=" + verbose + ", max=" + max;
     }
 
@@ -37,6 +39,12 @@ public class UserController {
     @GetMapping("/users")
     public String listUsers() {
         return "User list here";
+    }
+
+    @GetMapping("/user/details")
+    public String getUserDetails(@RequestParam("id") Integer id, @RequestParam("verbose") Boolean verbose) {
+        boolean b = (verbose != null && verbose);
+        return "Details for ID=" + id + ", verbose=" + b;
     }
 }
 

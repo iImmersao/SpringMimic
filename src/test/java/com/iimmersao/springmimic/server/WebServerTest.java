@@ -6,9 +6,14 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.Scanner;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -64,5 +69,133 @@ class WebServerTest {
 
         assertEquals(200, responseCode);
         assertEquals("Received: Philip", response);
+    }
+
+    @Test
+    void shouldHandleQueryParamsCorrectly() throws Exception {
+        String url = "http://localhost:" + port + "/user/details?id=123&verbose=true&max=100";
+        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+        conn.setRequestMethod("GET");
+
+        int responseCode = conn.getResponseCode();
+        String response = new Scanner(conn.getInputStream()).useDelimiter("\\A").next();
+
+        assertEquals(200, responseCode);
+        assertEquals("Details for ID=123, verbose=true", response);
+    }
+
+    @Test
+    void shouldHandleMissingOptionalQueryParam() throws Exception {
+        // Arrange
+        HttpClient client = HttpClient.newHttpClient();
+        String url = "http://localhost:" + port + "/user/details?id=999&max=100";
+        URI uri = URI.create(url);  // No ?verbose param
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(uri)
+                .GET()
+                .build();
+
+        // Act
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        // Assert
+        assertEquals(200, response.statusCode(), "Expected status 200 OK");
+        assertTrue(response.body().contains("Details for ID=999"), "Expected response to include user ID");
+    }
+
+    @Test
+    void shouldHandleMultiplePathVariables() throws Exception {
+        String url = "http://localhost:" + port + "/posts/42/comments/7";
+        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+        conn.setRequestMethod("GET");
+
+        int responseCode = conn.getResponseCode();
+        String response = new Scanner(conn.getInputStream()).useDelimiter("\\A").next();
+
+        assertEquals(200, responseCode);
+        assertEquals("Post=42, Comment=7", response);
+    }
+
+    @Test
+    void shouldReturnNotFoundForUnknownRoute() throws Exception {
+        String url = "http://localhost:" + port + "/not-a-route";
+        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+        conn.setRequestMethod("GET");
+
+        int responseCode = conn.getResponseCode();
+
+        assertEquals(404, responseCode);
+    }
+
+    @Test
+    void shouldReturnBadRequestForInvalidBooleanParam() throws Exception {
+        // Arrange
+        HttpClient client = HttpClient.newHttpClient();
+        String url = "http://localhost:" + port + "/user/details?id=55&verbose=maybe&max=100";
+        URI uri = URI.create(url);  // No ?verbose param
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(uri)
+                .GET()
+                .build();
+
+        // Act
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        // Assert
+        assertEquals(400, response.statusCode(), "Expected status 400 OK");
+        assertTrue(response.body().contains("Invalid value for request parameter 'verbose'"),
+                "Expected response to give error about invalid Boolean value");
+    }
+
+    @Test
+    void shouldReturnBadRequestForMissingRequiredParam() throws Exception {
+        // Arrange
+        HttpClient client = HttpClient.newHttpClient();
+        String url = "http://localhost:" + port + "/user/details?verbose=true"; // missing 'id'
+        URI uri = URI.create(url);  // No ?verbose param
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(uri)
+                .GET()
+                .build();
+
+        // Act
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        // Assert
+        assertEquals(400, response.statusCode(), "Expected status 400 OK");
+        assertTrue(response.body().contains("Missing required request parameter"),
+                "Expected response to give error about invalid Boolean value");
+    }
+
+    @Test
+    void shouldReturnBadRequestForMalformedJson() throws Exception {
+        HttpURLConnection conn = (HttpURLConnection) new URL("http://localhost:" + port + "/json").openConnection();
+        conn.setRequestMethod("POST");
+        conn.setDoOutput(true);
+        conn.setRequestProperty("Content-Type", "application/json");
+
+        String badJson = "{\"name\": }";  // malformed JSON
+        try (OutputStream os = conn.getOutputStream()) {
+            os.write(badJson.getBytes());
+        }
+
+        int responseCode = conn.getResponseCode();
+        String response = new Scanner(conn.getErrorStream()).useDelimiter("\\A").next();
+
+        assertEquals(400, responseCode);
+        assertTrue(response.contains("Invalid request body"), response);
+    }
+
+    @Test
+    void shouldReturnMethodNotAllowedForWrongHttpMethod() throws Exception {
+        HttpURLConnection conn = (HttpURLConnection) new URL("http://localhost:" + port + "/json").openConnection();
+        conn.setRequestMethod("GET"); // Should be POST
+
+        int responseCode = conn.getResponseCode();
+
+        assertEquals(404, responseCode); // Framework uses 404 for method mismatch
     }
 }
