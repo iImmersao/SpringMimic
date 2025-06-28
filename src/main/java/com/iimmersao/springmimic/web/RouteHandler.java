@@ -1,5 +1,6 @@
 package com.iimmersao.springmimic.web;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iimmersao.springmimic.annotations.PathVariable;
 import com.iimmersao.springmimic.annotations.RequestBody;
@@ -11,140 +12,62 @@ import java.util.*;
 import java.util.regex.*;
 
 public class RouteHandler {
-    public final Object instance;
-    public final Method method;
-    private final Pattern pathPattern;
-    private final List<String> pathVariableNames;
+    private final Object controller;
+    private final Method method;
+    private final Map<String, String> pathVariables;
 
-    private final String httpMethod;
-
-    public RouteHandler(Object instance, Method method, String routePath, String httpMethod) {
-        this.instance = instance;
+    public RouteHandler(Object controller, Method method, Map<String, String> pathVariables) {
+        this.controller = controller;
         this.method = method;
-        this.httpMethod = httpMethod.toUpperCase();
-
-        // Convert /users/{id} to /users/([^/]+)
-        this.pathVariableNames = new ArrayList<>();
-        String regex = Arrays.stream(routePath.split("/"))
-                .filter(segment -> !segment.isEmpty())  // <<< fix: skip empty segments
-                .map(segment -> {
-                    if (segment.startsWith("{") && segment.endsWith("}")) {
-                        String varName = segment.substring(1, segment.length() - 1);
-                        pathVariableNames.add(varName);
-                        return "([^/]+)";
-                    } else {
-                        return Pattern.quote(segment);
-                    }
-                })
-                .reduce((a, b) -> a + "/" + b)
-                .map(s -> "^/" + s + "$")
-                .orElse("^/$");
-
-        this.pathPattern = Pattern.compile(regex);
-
-        /*
-        String regex = Arrays.stream(routePath.split("/"))
-                .map(segment -> {
-                    if (segment.startsWith("{") && segment.endsWith("}")) {
-                        String varName = segment.substring(1, segment.length() - 1);
-                        pathVariableNames.add(varName);
-                        return "([^/]+)";
-                    } else {
-                        return Pattern.quote(segment);
-                    }
-                })
-                .reduce((a, b) -> a + "/" + b)
-                .orElse("");
-        this.pathPattern = Pattern.compile("^/" + regex + "$");
-         */
+        this.pathVariables = pathVariables;
     }
 
-    public boolean matches(String uri) {
-        return pathPattern.matcher(uri).matches();
-    }
-
-    /*
-    public Object invoke(NanoHTTPD.IHTTPSession session) throws Exception {
-        Map<String, String> queryParams = new HashMap<>();
-        session.parseBody(new HashMap<>());
-        queryParams.putAll(session.getParms());
-
-        Matcher matcher = pathPattern.matcher(session.getUri());
-        if (!matcher.matches()) {
-            throw new RuntimeException("URI did not match: " + session.getUri());
-        }
-
-        Map<String, String> pathParams = new HashMap<>();
-        for (int i = 0; i < pathVariableNames.size(); i++) {
-            pathParams.put(pathVariableNames.get(i), matcher.group(i + 1));
-        }
-
-        Parameter[] parameters = method.getParameters();
+    public Object handle(NanoHTTPD.IHTTPSession session) throws InvocationTargetException, IllegalAccessException, JsonProcessingException {
+        var parameters = method.getParameters();
         Object[] args = new Object[parameters.length];
 
-        for (int i = 0; i < parameters.length; i++) {
-            Parameter param = parameters[i];
-
-            if (param.isAnnotationPresent(RequestParam.class)) {
-                String key = param.getAnnotation(RequestParam.class).value();
-                args[i] = convert(queryParams.get(key), param.getType());
-            } else if (param.isAnnotationPresent(PathVariable.class)) {
-                String key = param.getAnnotation(PathVariable.class).value();
-                args[i] = convert(pathParams.get(key), param.getType());
-            } else {
-                args[i] = null;
-            }
-        }
-
-        return method.invoke(instance, args);
-    }
-*/
-
-
-    public Object invoke(NanoHTTPD.IHTTPSession session) throws Exception {
-        Map<String, String> queryParams = new HashMap<>();
-        Map<String, String> bodyMap = new HashMap<>();
-        session.parseBody(bodyMap);
-        queryParams.putAll(session.getParms());
-
-        String requestBody = bodyMap.get("postData");
-        Matcher matcher = pathPattern.matcher(session.getUri());
-        if (!matcher.matches()) {
-            throw new RuntimeException("URI did not match: " + session.getUri());
-        }
-
-        Map<String, String> pathParams = new HashMap<>();
-        for (int i = 0; i < pathVariableNames.size(); i++) {
-            pathParams.put(pathVariableNames.get(i), matcher.group(i + 1));
-        }
-
-        Parameter[] parameters = method.getParameters();
-        Object[] args = new Object[parameters.length];
-        ObjectMapper objectMapper = new ObjectMapper();
+        Map<String, String> queryParams = session.getParms();
 
         for (int i = 0; i < parameters.length; i++) {
-            Parameter param = parameters[i];
+            var param = parameters[i];
+            var type = param.getType();
 
-            if (param.isAnnotationPresent(RequestParam.class)) {
-                String key = param.getAnnotation(RequestParam.class).value();
-                args[i] = convert(queryParams.get(key), param.getType());
+            if (param.isAnnotationPresent(PathVariable.class)) {
+                String name = param.getAnnotation(PathVariable.class).value();
+                String value = pathVariables.get(name);
+                args[i] = convert(value, type);
 
-            } else if (param.isAnnotationPresent(PathVariable.class)) {
-                String key = param.getAnnotation(PathVariable.class).value();
-                args[i] = convert(pathParams.get(key), param.getType());
+            } else if (param.isAnnotationPresent(RequestParam.class)) {
+                String name = param.getAnnotation(RequestParam.class).value();
+                String value = queryParams.get(name);
+                args[i] = convert(value, type);
 
             } else if (param.isAnnotationPresent(RequestBody.class)) {
-                args[i] = objectMapper.readValue(requestBody, param.getType());
+                    Class<?> bodyType = param.getType();
+                    String body = readRequestBody(session); // ✅ We'll implement this
+                    args[i] = new ObjectMapper().readValue(body, bodyType);
 
             } else {
-                args[i] = null;
+                args[i] = null; // fallback (could later support default or request body)
             }
         }
 
-        return method.invoke(instance, args);
+        return method.invoke(controller, args);
     }
 
+    private String readRequestBody(NanoHTTPD.IHTTPSession session) {
+        try {
+            Map<String, String> map = new HashMap<>();
+            session.parseBody(map);
+            return map.get("postData");
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to read request body", e);
+        }
+    }
 
+    public Map<String, String> getPathVariables() {
+        return pathVariables;
+    }
 
     private Object convert(String value, Class<?> type) {
         if (value == null) return null;
@@ -152,18 +75,7 @@ public class RouteHandler {
         if (type == int.class || type == Integer.class) return Integer.parseInt(value);
         if (type == long.class || type == Long.class) return Long.parseLong(value);
         if (type == boolean.class || type == Boolean.class) return Boolean.parseBoolean(value);
-        throw new RuntimeException("Unsupported param type: " + type.getName());
-    }
-
-    public boolean matches(String uri, String method) {
-        return this.httpMethod.equals(method.toUpperCase()) && pathPattern.matcher(uri).matches();
-    }
-
-    public String getHttpMethod() {
-        return httpMethod;
-    }
-
-    public String getPattern() {
-        return pathPattern.pattern();
+        // Add more types as needed
+        throw new IllegalArgumentException("Unsupported parameter type: " + type.getName());
     }
 }

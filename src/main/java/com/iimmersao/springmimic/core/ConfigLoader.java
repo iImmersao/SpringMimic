@@ -1,63 +1,37 @@
 package com.iimmersao.springmimic.core;
 
-/*
-import java.io.*;
-import java.util.*;
-
-public class ConfigLoader {
-
-    private final Properties properties = new Properties();
-
-    public ConfigLoader(String filename) {
-        try (InputStream input = new FileInputStream(filename)) {
-            properties.load(input);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to load config file: " + filename, e);
-        }
-    }
-
-    public String get(String key) {
-        return properties.getProperty(key);
-    }
-}
- */
-
-
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Properties;
 
 public class ConfigLoader {
-    private final Properties properties = new Properties();
+    private static final Properties properties = new Properties();
 
-    public ConfigLoader(String filename) {
-        try {
-            InputStream input = tryLoad(filename);
-            if (input == null) {
-                throw new FileNotFoundException("Config not found: " + filename);
+    static {
+        try (InputStream input = ConfigLoader.class.getClassLoader().getResourceAsStream("application.properties")) {
+            if (input != null) {
+                properties.load(input);
+            } else {
+                System.err.println("No application.properties found in classpath.");
             }
-            properties.load(input);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to load config: " + filename, e);
+            throw new RuntimeException("Failed to load configuration", e);
         }
     }
 
-    private InputStream tryLoad(String filename) throws FileNotFoundException {
-        // Try filesystem first
-        File file = new File(filename);
-        if (file.exists()) {
-            System.out.println("Loading config from file system: " + file.getAbsolutePath());
-            return new FileInputStream(file);
-        }
-
-        // Try classpath
-        InputStream resource = getClass().getClassLoader().getResourceAsStream(filename);
-        if (resource != null) {
-            System.out.println("Loading config from classpath: " + filename);
-        }
-        return resource;
+    public static String get(String key, String defaultValue) {
+        return properties.getProperty(key, defaultValue);
     }
 
-    public String get(String key) {
-        return properties.getProperty(key);
+    public static int getInt(String key, int defaultValue) {
+        String value = properties.getProperty(key);
+        if (value != null) {
+            try {
+                return Integer.parseInt(value.trim());
+            } catch (NumberFormatException e) {
+                System.err.printf("Invalid int for config key '%s': %s%n", key, value);
+            }
+        }
+        return defaultValue;
     }
 }

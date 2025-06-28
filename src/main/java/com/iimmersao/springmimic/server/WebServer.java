@@ -20,15 +20,33 @@ public class WebServer extends NanoHTTPD {
 
     @Override
     public Response serve(IHTTPSession session) {
-        Optional<RouteHandler> optHandler = router.findHandler(session.getUri(), session.getMethod().name());
+        Optional<RouteHandler> optHandler = router.findHandler(session.getMethod().name(), session.getUri());
 
         if (optHandler.isPresent()) {
             try {
                 RouteHandler handler = optHandler.get();
-                Object result = handler.invoke(session);
+                Object result = handler.handle(session);
 
                 if (result instanceof String) {
-                    return newFixedLengthResponse(Response.Status.OK, "text/plain", (String) result);
+                    String contentType;
+                    String responseBody;
+
+                    if (result == null) {
+                        contentType = "text/plain";
+                        responseBody = "";
+                    } else if (result instanceof String) {
+                        contentType = "text/plain";
+                        responseBody = (String) result;
+                    } else {
+                        contentType = "application/json";
+                        try {
+                            responseBody = new ObjectMapper().writeValueAsString(result);
+                        } catch (Exception e) {
+                            return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "Failed to serialize JSON");
+                        }
+                    }
+
+                    return newFixedLengthResponse(Response.Status.OK, contentType, responseBody);
                 } else {
                     String json = objectMapper.writeValueAsString(result);
                     return newFixedLengthResponse(Response.Status.OK, "application/json", json);
