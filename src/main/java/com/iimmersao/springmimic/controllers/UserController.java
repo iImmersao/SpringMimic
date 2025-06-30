@@ -1,9 +1,13 @@
 package com.iimmersao.springmimic.controllers;
 
 import com.iimmersao.springmimic.annotations.*;
+import com.iimmersao.springmimic.client.RestClient;
 
 @Controller
 public class UserController {
+
+    @Inject
+    RestClient restClient;
 
     public static class User {
         private String name;
