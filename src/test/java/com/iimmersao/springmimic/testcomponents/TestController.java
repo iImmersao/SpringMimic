@@ -42,4 +42,19 @@ public class TestController {
     public String createUser(@RequestBody UserController.User user) {
         return "Created user: " + user.getName();
     }
+
+    @PutMapping("/users/{id}")
+    public String updateUser(@PathVariable("id") String id, @RequestBody UserController.User user) {
+        return "Updated user " + id + " with name " + user.getName();
+    }
+
+    @PatchMapping("/users/{id}")
+    public String patchUser(@PathVariable("id") String id, @RequestBody UserController.User user) {
+        return "Patched user " + id + " with name " + user.getName();
+    }
+
+    @DeleteMapping("/users/{id}")
+    public String deleteUser(@PathVariable("id") String id) {
+        return "Deleted user " + id;
+    }
 }

@@ -1,7 +1,5 @@
 package com.iimmersao.springmimic.core;
 
-import com.iimmersao.springmimic.annotations.Component;
-import com.iimmersao.springmimic.annotations.Controller;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;

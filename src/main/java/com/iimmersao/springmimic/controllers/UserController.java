@@ -46,5 +46,20 @@ public class UserController {
         boolean b = (verbose != null && verbose);
         return "Details for ID=" + id + ", verbose=" + b;
     }
+
+    @PutMapping("/users/{id}")
+    public String updateUser(@PathVariable("id") String id, @RequestBody User user) {
+        return "Updated user " + id + " with name " + user.name;
+    }
+
+    @PatchMapping("/users/{id}")
+    public String patchUser(@PathVariable("id") String id, @RequestBody User user) {
+        return "Patched user " + id + " with name " + user.name;
+    }
+
+    @DeleteMapping("/users/{id}")
+    public String deleteUser(@PathVariable("id") String id) {
+        return "Deleted user " + id;
+    }
 }
 

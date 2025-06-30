@@ -6,7 +6,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
@@ -22,6 +21,8 @@ class WebServerTest {
 
     static WebServer server;
     static int port = 9999;
+
+    private final HttpClient client = HttpClient.newHttpClient();
 
     @BeforeAll
     static void startServer() throws Exception {
@@ -49,7 +50,7 @@ class WebServerTest {
         String response = new Scanner(conn.getInputStream()).useDelimiter("\\A").next();
 
         assertEquals(200, responseCode);
-        assertEquals("Echo: hello", response);
+        assertEquals("\"Echo: hello\"", response);
     }
 
     @Test
@@ -68,7 +69,7 @@ class WebServerTest {
         String response = new Scanner(conn.getInputStream()).useDelimiter("\\A").next();
 
         assertEquals(200, responseCode);
-        assertEquals("Received: Philip", response);
+        assertEquals("\"Received: Philip\"", response);
     }
 
     @Test
@@ -81,7 +82,7 @@ class WebServerTest {
         String response = new Scanner(conn.getInputStream()).useDelimiter("\\A").next();
 
         assertEquals(200, responseCode);
-        assertEquals("Details for ID=123, verbose=true", response);
+        assertEquals("\"Details for ID=123, verbose=true\"", response);
     }
 
     @Test
@@ -114,7 +115,7 @@ class WebServerTest {
         String response = new Scanner(conn.getInputStream()).useDelimiter("\\A").next();
 
         assertEquals(200, responseCode);
-        assertEquals("Post=42, Comment=7", response);
+        assertEquals("\"Post=42, Comment=7\"", response);
     }
 
     @Test
@@ -197,5 +198,48 @@ class WebServerTest {
         int responseCode = conn.getResponseCode();
 
         assertEquals(404, responseCode); // Framework uses 404 for method mismatch
+    }
+
+    @Test
+    void shouldHandlePutRequest() throws Exception {
+        String body = "{\"name\": \"Updated Alice\"}";
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(new URI("http://localhost:" + port + "/users/123"))
+                .method("PUT", HttpRequest.BodyPublishers.ofString(body))
+                .header("Content-Type", "application/json")
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, response.statusCode());
+        assertTrue(response.body().contains("Updated user 123"));
+    }
+
+    @Test
+    void shouldHandlePatchRequest() throws Exception {
+        String body = "{\"name\": \"Patched Alice\"}";
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(new URI("http://localhost:" + port + "/users/123"))
+                .method("PATCH", HttpRequest.BodyPublishers.ofString(body))
+                .header("Content-Type", "application/json")
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, response.statusCode());
+        assertTrue(response.body().contains("Patched user 123"));
+    }
+
+    @Test
+    void shouldHandleDeleteRequest() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(new URI("http://localhost:" + port + "/users/123"))
+                .DELETE()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, response.statusCode());
+        assertTrue(response.body().contains("Deleted user 123"));
     }
 }

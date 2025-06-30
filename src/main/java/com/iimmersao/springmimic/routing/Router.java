@@ -1,40 +1,70 @@
 package com.iimmersao.springmimic.routing;
 
-import com.iimmersao.springmimic.annotations.GetMapping;
-import com.iimmersao.springmimic.annotations.PostMapping;
+import com.iimmersao.springmimic.annotations.*;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Router {
+    private static final Pattern PATH_VARIABLE_PATTERN = Pattern.compile("\\{([^/]+)}");
 
     private final List<RouteEntry> routes = new ArrayList<>();
+
+    private Pattern pathToRegex(String path) {
+        String regex = PATH_VARIABLE_PATTERN.matcher(path).replaceAll("([^/]+)");
+        return Pattern.compile("^" + regex + "$");
+    }
 
     public void registerControllers(Set<Object> controllers) {
         for (Object controller : controllers) {
             Class<?> clazz = controller.getClass();
             for (Method method : clazz.getDeclaredMethods()) {
-                if (method.isAnnotationPresent(GetMapping.class)) {
-                    String path = method.getAnnotation(GetMapping.class).value();
-                    RouteHandler handler = new RouteHandler(controller, method, path);
-                    routes.add(new RouteEntry("GET", handler));
-                } else if (method.isAnnotationPresent(PostMapping.class)) {
-                    String path = method.getAnnotation(PostMapping.class).value();
-                    RouteHandler handler = new RouteHandler(controller, method, path);
-                    routes.add(new RouteEntry("POST", handler));
+                Annotation[] annotations = method.getAnnotations();
+                for (Annotation annotation : annotations) {
+                    String httpMethod = null;
+                    String path = null;
+
+                    if (annotation.annotationType().equals(GetMapping.class)) {
+                        httpMethod = "GET";
+                        path = ((GetMapping) annotation).value();
+                    } else if (annotation.annotationType().equals(PostMapping.class)) {
+                        httpMethod = "POST";
+                        path = ((PostMapping) annotation).value();
+                    } else if (annotation.annotationType().equals(PutMapping.class)) {
+                        httpMethod = "PUT";
+                        path = ((PutMapping) annotation).value();
+                    } else if (annotation.annotationType().equals(PatchMapping.class)) {
+                        httpMethod = "PATCH";
+                        path = ((PatchMapping) annotation).value();
+                    } else if (annotation.annotationType().equals(DeleteMapping.class)) {
+                        httpMethod = "DELETE";
+                        path = ((DeleteMapping) annotation).value();
+                    }
+
+                    if (httpMethod != null && path != null) {
+                        Pattern regexPattern = pathToRegex(path);
+                        RouteHandler handler = new RouteHandler(httpMethod, path, controller, method);
+                        routes.add(new RouteEntry(httpMethod, regexPattern, handler));
+                    }
                 }
             }
         }
     }
 
-    public Optional<RouteHandler> findHandler(String method, String uri) {
+    public RouteMatch findHandler(String method, String uri) {
         for (RouteEntry entry : routes) {
-            if (entry.method().equalsIgnoreCase(method) && entry.handler().matches(uri)) {
-                return Optional.of(entry.handler());
+            if (entry.httpMethod().equalsIgnoreCase(method)) {
+                Matcher matcher = entry.pattern().matcher(uri);
+                if (matcher.matches()) {
+                    return new RouteMatch(entry.handler(), matcher);
+                }
             }
         }
-        return Optional.empty();
+        return null;
     }
 
-    private record RouteEntry(String method, RouteHandler handler) {}
+    private record RouteEntry(String httpMethod, Pattern pattern, RouteHandler handler) {}
 }
