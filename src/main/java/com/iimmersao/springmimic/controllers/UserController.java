@@ -65,5 +65,19 @@ public class UserController {
     public String deleteUser(@PathVariable("id") String id) {
         return "Deleted user " + id;
     }
+
+    @GetMapping("/external")
+    public String callExternalService() throws Exception {
+        // For example, proxying a public JSON API
+        Post post = restClient.get("https://jsonplaceholder.typicode.com/posts/1", Post.class);
+        return "Fetched post: " + post.title;
+    }
+
+    public static class Post {
+        public int userId;
+        public int id;
+        public String title;
+        public String body;
+    }
 }
 

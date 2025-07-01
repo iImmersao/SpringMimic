@@ -7,6 +7,7 @@ import com.iimmersao.springmimic.routing.Router;
 import fi.iki.elonen.NanoHTTPD;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.Set;
 
 public class Main {
@@ -15,8 +16,10 @@ public class Main {
         ApplicationContext context = new ApplicationContext(basePackage);
 
         Router router = new Router();
-        Set<Object> controllers = context.getControllers();
-        router.registerControllers(controllers);
+        Map<Class<?>, Object> controllers = context.getControllers();
+        router.registerControllers(controllers.values());
+        //Set<Object> controllers = context.getControllers();
+        //router.registerControllers(controllers);
 
         int port = ConfigLoader.getInt("server.port", 8080);
         WebServer server = new WebServer(port, router);

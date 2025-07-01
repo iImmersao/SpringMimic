@@ -18,7 +18,7 @@ public class Router {
         return Pattern.compile("^" + regex + "$");
     }
 
-    public void registerControllers(Set<Object> controllers) {
+    public void registerControllers(Collection<Object> controllers) {
         for (Object controller : controllers) {
             Class<?> clazz = controller.getClass();
             for (Method method : clazz.getDeclaredMethods()) {

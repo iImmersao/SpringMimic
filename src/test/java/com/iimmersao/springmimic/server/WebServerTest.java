@@ -28,7 +28,7 @@ class WebServerTest {
     static void startServer() throws Exception {
         ApplicationContext context = new ApplicationContext("com.iimmersao.springmimic.testcomponents");
         Router router = new Router();
-        router.registerControllers(context.getControllers());
+        router.registerControllers(context.getControllers().values());
         server = new WebServer(port, router);
         server.start(1000, false);
 
