@@ -6,7 +6,6 @@ import io.github.classgraph.ScanResult;
 import java.lang.annotation.Annotation;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import com.iimmersao.springmimic.annotations.Component;
 import com.iimmersao.springmimic.annotations.Controller;

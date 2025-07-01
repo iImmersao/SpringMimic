@@ -18,8 +18,6 @@ public class Main {
         Router router = new Router();
         Map<Class<?>, Object> controllers = context.getControllers();
         router.registerControllers(controllers.values());
-        //Set<Object> controllers = context.getControllers();
-        //router.registerControllers(controllers);
 
         int port = ConfigLoader.getInt("server.port", 8080);
         WebServer server = new WebServer(port, router);
