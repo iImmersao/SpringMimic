@@ -23,6 +23,10 @@ public class ConfigLoader {
         return properties.getProperty(key, defaultValue);
     }
 
+    public static String get(String key) {
+        return properties.getProperty(key);
+    }
+
     public static int getInt(String key, int defaultValue) {
         String value = properties.getProperty(key);
         if (value != null) {
@@ -33,5 +37,10 @@ public class ConfigLoader {
             }
         }
         return defaultValue;
+    }
+
+    public static boolean getBoolean(String key, boolean defaultValue) {
+        String value = get(key);
+        return value != null ? Boolean.parseBoolean(value) : defaultValue;
     }
 }
