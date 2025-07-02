@@ -1,0 +1,37 @@
+package com.iimmersao.springmimic.database;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface DatabaseClient {
+
+    /**
+     * Saves the given entity (insert or update).
+     */
+    <T> void save(T entity);
+
+    /**
+     * Finds an entity by its ID.
+     */
+    <T> Optional<T> findById(Class<T> entityType, Object id);
+
+    /**
+     * Finds all records of a given type.
+     */
+    <T> List<T> findAll(Class<T> entityType);
+
+    /**
+     * Updates an entity by its ID.
+     */
+    <T> void updateById(T entity);
+
+    /**
+     * Deletes an entity by its ID.
+     */
+    <T> void deleteById(Class<T> entityType, Object id);
+
+    /**
+     * Deletes all entities of a given type.
+     */
+    <T> void deleteAll(Class<T> entityType);
+}

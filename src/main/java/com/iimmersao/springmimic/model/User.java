@@ -1,28 +1,41 @@
 package com.iimmersao.springmimic.model;
 
-import com.iimmersao.springmimic.annotations.Entity;
+import com.iimmersao.springmimic.annotations.*;
 
-@Entity(table = "users", collection = "users")
+@Entity
+@Table(name = "users")
 public class User {
-    private String id;
-    private String name;
+
+    @Id
+    @GeneratedValue
+    @Column(name = "id")
+    private Integer id;
+
+    @Column(name = "username")
+    private String username;
+
+    @Column(name = "email")
     private String email;
 
-    public User() {} // Default constructor required
+    public User() {}
 
-    public User(String id, String name, String email) {
-        this.id = id;
-        this.name = name;
+    public User(String username, String email) {
+        this.username = username;
         this.email = email;
     }
 
     // Getters and setters
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+
+    @Override
+    public String toString() {
+        return String.format("User{id=%d, username='%s', email='%s'}", id, username, email);
+    }
 }
