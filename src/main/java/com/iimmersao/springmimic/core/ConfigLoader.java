@@ -10,6 +10,7 @@ public class ConfigLoader {
     static {
         try (InputStream input = ConfigLoader.class.getClassLoader().getResourceAsStream("application.properties")) {
             if (input != null) {
+                System.out.println("Loading properties");
                 properties.load(input);
             } else {
                 System.err.println("No application.properties found in classpath.");

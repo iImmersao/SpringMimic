@@ -8,7 +8,7 @@ public interface DatabaseClient {
     /**
      * Saves the given entity (insert or update).
      */
-    <T> void save(T entity);
+    <T> void save( T entity);
 
     /**
      * Finds an entity by its ID.
