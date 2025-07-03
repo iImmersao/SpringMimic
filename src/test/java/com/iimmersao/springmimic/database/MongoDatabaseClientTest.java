@@ -1,12 +1,14 @@
 package com.iimmersao.springmimic.database;
 
+import com.iimmersao.springmimic.core.ConfigLoader;
 import com.iimmersao.springmimic.database.DatabaseClient;
 import com.iimmersao.springmimic.exceptions.DatabaseException;
 import com.iimmersao.springmimic.database.MongoDatabaseClient;
 import com.iimmersao.springmimic.model.MongoUser;
 import org.junit.jupiter.api.*;
 
-        import java.util.List;
+import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -16,9 +18,12 @@ public class MongoDatabaseClientTest {
 
     private DatabaseClient mongoClient;
 
+    private ConfigLoader configLoader;
+
     @BeforeAll
-    void setup() {
-        mongoClient = new MongoDatabaseClient();
+    void setup() throws IOException {
+        configLoader = new ConfigLoader("application.properties"); // or your test config file path
+        mongoClient = new MongoDatabaseClient(configLoader);
     }
 
     @BeforeEach

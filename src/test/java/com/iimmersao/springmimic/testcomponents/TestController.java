@@ -6,6 +6,18 @@ import com.iimmersao.springmimic.controllers.UserController;
 @Controller
 public class TestController {
 
+    public static class User {
+        private String name;
+        private int age;
+
+        // Getters and setters required for Jackson
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+
+        public int getAge() { return age; }
+        public void setAge(int age) { this.age = age; }
+    }
+
     @GetMapping("/echo/{value}")
     public String echo(@PathVariable("value") String val) {
         return "Echo: " + val;
@@ -39,17 +51,17 @@ public class TestController {
     }
 
     @PostMapping("/users")
-    public String createUser(@RequestBody UserController.User user) {
+    public String createUser(@RequestBody User user) {
         return "Created user: " + user.getName();
     }
 
     @PutMapping("/users/{id}")
-    public String updateUser(@PathVariable("id") String id, @RequestBody UserController.User user) {
+    public String updateUser(@PathVariable("id") String id, @RequestBody User user) {
         return "Updated user " + id + " with name " + user.getName();
     }
 
     @PatchMapping("/users/{id}")
-    public String patchUser(@PathVariable("id") String id, @RequestBody UserController.User user) {
+    public String patchUser(@PathVariable("id") String id, @RequestBody User user) {
         return "Patched user " + id + " with name " + user.getName();
     }
 

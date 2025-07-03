@@ -1,6 +1,7 @@
 package com.iimmersao.springmimic.database;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.iimmersao.springmimic.annotations.Bean;
 import com.iimmersao.springmimic.annotations.Column;
 import com.iimmersao.springmimic.annotations.Id;
 import com.iimmersao.springmimic.annotations.Table;
@@ -16,16 +17,19 @@ import java.util.*;
 
 import static com.mongodb.client.model.Filters.eq;
 
+@Bean
 public class MongoDatabaseClient implements DatabaseClient {
 
+    private ConfigLoader config;
     private final MongoClient client;
     private final MongoDatabase database;
     private final ObjectMapper objectMapper;
 
-    public MongoDatabaseClient() {
+    public MongoDatabaseClient(ConfigLoader config) {
+        this.config = config;
         try {
-            String uri = ConfigLoader.get("mongodb.uri");
-            String dbName = ConfigLoader.get("mongodb.database");
+            String uri = config.get("mongodb.uri");
+            String dbName = config.get("mongodb.database");
             this.client = MongoClients.create(uri);
             this.database = client.getDatabase(dbName);
             this.objectMapper = new ObjectMapper();

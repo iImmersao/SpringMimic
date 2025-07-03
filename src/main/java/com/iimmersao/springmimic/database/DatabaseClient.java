@@ -1,8 +1,11 @@
 package com.iimmersao.springmimic.database;
 
+import com.iimmersao.springmimic.annotations.Bean;
+
 import java.util.List;
 import java.util.Optional;
 
+@Bean
 public interface DatabaseClient {
 
     /**

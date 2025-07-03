@@ -1,16 +1,34 @@
 package com.iimmersao.springmimic.database;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iimmersao.springmimic.annotations.*;
 import com.iimmersao.springmimic.core.ConfigLoader;
 import com.iimmersao.springmimic.exceptions.DatabaseException;
+import com.mongodb.client.MongoClients;
 
 import java.lang.reflect.Field;
 import java.sql.*;
 import java.util.*;
 
+@Bean
 public class MySqlDatabaseClient implements DatabaseClient {
 
     private final Connection connection;
+    private ConfigLoader config;
+
+    public MySqlDatabaseClient(ConfigLoader config) {
+        this.config = config;
+
+        try {
+            String url = config.get("database.url");
+            String username = config.get("database.username");
+            String password = config.get("database.password");
+            connection = DriverManager.getConnection(
+                    url, username, password);
+        } catch (Exception e) {
+            throw new DatabaseException("Failed to connect to MongoDB", e);
+        }
+    }
 
     public MySqlDatabaseClient(Connection connection) {
         this.connection = connection;
@@ -269,9 +287,9 @@ public class MySqlDatabaseClient implements DatabaseClient {
     }
 
     private Connection getConnection() throws SQLException {
-        String url = ConfigLoader.get("database.url");
-        String username = ConfigLoader.get("database.username");
-        String password = ConfigLoader.get("database.password");
+        String url = config.get("database.url");
+        String username = config.get("database.username");
+        String password = config.get("database.password");
 
         return DriverManager.getConnection(url, username, password);
     }

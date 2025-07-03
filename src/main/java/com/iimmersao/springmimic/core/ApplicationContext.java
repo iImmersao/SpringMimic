@@ -1,120 +1,150 @@
 package com.iimmersao.springmimic.core;
 
-import com.iimmersao.springmimic.annotations.*;
+import com.iimmersao.springmimic.annotations.Autowired;
+import com.iimmersao.springmimic.annotations.Component;
+import com.iimmersao.springmimic.annotations.Controller;
+import com.iimmersao.springmimic.annotations.Repository;
+import com.iimmersao.springmimic.annotations.Service;
+import com.iimmersao.springmimic.core.ComponentScanner;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ApplicationContext {
+
     private final String basePackage;
-
+    private final Map<Class<?>, Object> manualBeans = new HashMap<>();
     private final Map<Class<?>, Object> components = new HashMap<>();
-    private final Map<Class<?>, Object> controllers = new HashMap<>();
-    private final Map<Class<?>, Object> beans = new HashMap<>();
-    private final Map<Class<?>, Object> entities = new HashMap<>();
-    private final Map<Class<?>, Object> services = new HashMap<>();
-
-    ComponentScanner scanner;
 
     public ApplicationContext(String basePackage) {
         this.basePackage = basePackage;
-
-        this.scanner = new ComponentScanner(basePackage);
-        registerByAnnotation(scanner, basePackage, Component.class, components);
-        registerByAnnotation(scanner, basePackage, Controller.class, controllers);
-        registerByAnnotation(scanner, basePackage, Bean.class, beans);
-        registerByAnnotation(scanner, basePackage, Entity.class, entities);
-        registerByAnnotation(scanner, basePackage, Service.class, services);
     }
 
-    private void registerByAnnotation(ComponentScanner scanner, String basePackage,
-                                      Class<? extends Annotation> annotation,
-                                      Map<Class<?>, Object> registry) {
-        Set<Class<?>> classes = scanner.scanByAnnotation(basePackage, annotation);
-        for (Class<?> clazz : classes) {
-            Object instance = createInstance(clazz); // With injection!
-            registry.put(clazz, instance);
+    public <T> void registerBean(Class<T> type, T instance) {
+        manualBeans.put(type, instance);
+    }
+
+    public void initialize() {
+        Set<Class<?>> discoveredClasses = new ComponentScanner(basePackage).scan();
+
+        for (Class<?> clazz : discoveredClasses) {
+            if (isComponentClass(clazz)) {
+                Object instance = createInstance(clazz);
+                components.put(clazz, instance);
+            }
+        }
+
+        for (Object instance : components.values()) {
+            injectDependencies(instance);
         }
     }
 
-    public Map<Class<?>, Object> getControllers() {
-        return this.controllers;
+    private boolean isComponentClass(Class<?> clazz) {
+        return clazz.isAnnotationPresent(Component.class)
+                || clazz.isAnnotationPresent(Controller.class)
+                || clazz.isAnnotationPresent(Service.class)
+                || clazz.isAnnotationPresent(Repository.class);
     }
 
-    public Map<Class<?>, Object> getComponents() {
-        return this.components;
-    }
-
-    public Map<Class<?>, Object> getBeans() {
-        return beans;
-    }
-
-    public Map<Class<?>, Object> getEntities() {
-        return entities;
-    }
-
-    public Map<Class<?>, Object> getServices() {
-        return services;
-    }
-
-    private Object instantiate(Class<?> clazz) {
+    private Object createInstance(Class<?> clazz) {
         try {
-            return clazz.getDeclaredConstructor().newInstance();
+            Object instance = clazz.getDeclaredConstructor().newInstance();
+            injectDependencies(instance);
+            return instance;
         } catch (Exception e) {
             throw new RuntimeException("Failed to instantiate: " + clazz.getName(), e);
         }
     }
 
-    private Object createInstance(Class<?> clazz) {
-        try {
-            // Create a new instance of the class using its no-arg constructor
-            Object instance = clazz.getDeclaredConstructor().newInstance();
+    private void injectDependencies(Object instance) {
+        for (Field field : instance.getClass().getDeclaredFields()) {
+            if (field.isAnnotationPresent(Autowired.class)) {
+                Object dependency = resolveDependency(field.getType());
+                if (dependency == null) {
+                    throw new RuntimeException("No bean found for type: " + field.getType().getName());
+                }
 
-            // Inject dependencies into fields annotated with @Inject or @Autowired
-            for (Field field : clazz.getDeclaredFields()) {
-                if (field.isAnnotationPresent(Inject.class) || field.isAnnotationPresent(Autowired.class)) {
-                    Class<?> fieldType = field.getType();
-                    Object dependency = getBean(fieldType);
-
-                    if (dependency == null) {
-                        // Attempt to recursively create the dependency
-                        dependency = createInstance(fieldType);
-                        registerInstance(fieldType, dependency); // Register in correct map
-                    }
-
-                    field.setAccessible(true);
+                field.setAccessible(true);
+                try {
                     field.set(instance, dependency);
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException("Failed to inject field: " + field.getName(), e);
                 }
             }
-
-            return instance;
-
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create instance of " + clazz.getName(), e);
         }
     }
 
-    private void registerInstance(Class<?> type, Object instance) {
-        if (type.isAnnotationPresent(Controller.class)) {
-            controllers.put(type, instance);
-        } else if (type.isAnnotationPresent(Component.class)) {
-            components.put(type, instance);
-        } else if (type.isAnnotationPresent(Bean.class)) {
-            beans.put(type, instance);
-        } else if (type.isAnnotationPresent(Entity.class)) {
-            entities.put(type, instance);
-        } else {
-            // If it’s not annotated, default to components map
-            components.put(type, instance);
+    private Object resolveDependency(Class<?> type) {
+        // First, try exact match from manual beans
+        Object bean = manualBeans.get(type);
+        if (bean != null) return bean;
+
+        // Look for assignable types in manual beans
+        for (Map.Entry<Class<?>, Object> entry : manualBeans.entrySet()) {
+            if (type.isAssignableFrom(entry.getKey())) {
+                return entry.getValue();
+            }
         }
+
+        // Then try components
+        for (Map.Entry<Class<?>, Object> entry : components.entrySet()) {
+            if (type.isAssignableFrom(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+
+        return null;
     }
 
-    private Object getBean(Class<?> type) {
-        Object instance = components.get(type);
-        if (instance == null) instance = controllers.get(type);
-        if (instance == null) instance = beans.get(type);
-        if (instance == null) instance = entities.get(type);
-        return instance;
+    public <T> T getBean(Class<T> type) {
+        Object bean = resolveDependency(type);
+        if (bean == null) {
+            throw new RuntimeException("No bean found for type: " + type.getName());
+        }
+        return type.cast(bean);
+    }
+
+    public Collection<Object> getAllControllers() {
+        List<Object> controllers = new ArrayList<>();
+        for (Object obj : components.values()) {
+            if (obj.getClass().isAnnotationPresent(Controller.class)) {
+                controllers.add(obj);
+            }
+        }
+        return controllers;
+    }
+
+    public List<Object> getControllers() {
+        return components.values().stream()
+                .filter(bean -> bean.getClass().isAnnotationPresent(Controller.class))
+                .collect(Collectors.toList());
+    }
+
+    public Collection<Object> getComponents() {
+        Map<Class<?>, Object> allBeans = new HashMap<>();
+        allBeans.putAll(manualBeans);
+        allBeans.putAll(components);
+        return allBeans.values();
+    }
+
+    public Collection<Object> getServices() {
+        return getBeansWithAnnotation(Service.class);
+    }
+
+    public Collection<Object> getRepositories() {
+        return getBeansWithAnnotation(Repository.class);
+    }
+
+    private Collection<Object> getBeansWithAnnotation(Class<? extends Annotation> annotationClass) {
+        Map<Class<?>, Object> allBeans = new HashMap<>();
+        allBeans.putAll(manualBeans);
+        allBeans.putAll(components);
+
+        return allBeans.entrySet().stream()
+                .filter(entry -> entry.getKey().isAnnotationPresent(annotationClass))
+                .map(Map.Entry::getValue)
+                .toList();
     }
 }
