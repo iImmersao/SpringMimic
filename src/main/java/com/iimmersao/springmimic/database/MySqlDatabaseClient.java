@@ -164,8 +164,6 @@ public class MySqlDatabaseClient implements DatabaseClient {
         }
     }
 
-
-
     @Override
     public <T> void updateById(T entity) {
         try {

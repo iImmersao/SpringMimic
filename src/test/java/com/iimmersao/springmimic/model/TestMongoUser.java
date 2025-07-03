@@ -6,7 +6,7 @@ import org.bson.types.ObjectId;
 
 @Entity
 @Table(name = "users")
-public class MongoUser {
+public class TestMongoUser {
 
     @Id
     @GeneratedValue
@@ -20,9 +20,9 @@ public class MongoUser {
     @Column(name = "email")
     private String email;
 
-    public MongoUser() {}
+    public TestMongoUser() {}
 
-    public MongoUser(String username, String email) {
+    public TestMongoUser(String username, String email) {
         this.username = username;
         this.email = email;
     }

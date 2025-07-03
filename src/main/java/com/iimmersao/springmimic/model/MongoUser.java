@@ -1,11 +1,10 @@
 package com.iimmersao.springmimic.model;
 
-import com.iimmersao.springmimic.annotations.*;
+import com.iimmersao.springmimic.annotations.Column;
+import com.iimmersao.springmimic.annotations.GeneratedValue;
+import com.iimmersao.springmimic.annotations.Id;
 
-@Entity
-@Table(name = "users")
-public class User {
-
+public class MongoUser {
     @Id
     @GeneratedValue
     @Column(name = "id")
@@ -17,15 +16,9 @@ public class User {
     @Column(name = "email")
     private String email;
 
-    public User() {}
+    public MongoUser() {}
 
-    public User(String username, String email) {
-        this.username = username;
-        this.email = email;
-    }
-
-    public User(String id, String username, String email) {
-        this.id = id;
+    public MongoUser(String username, String email) {
         this.username = username;
         this.email = email;
     }
@@ -42,6 +35,6 @@ public class User {
 
     @Override
     public String toString() {
-        return String.format("User{id=%d, username='%s', email='%s'}", id, username, email);
+        return String.format("User{id=%s, username='%s', email='%s'}", id, username, email);
     }
 }

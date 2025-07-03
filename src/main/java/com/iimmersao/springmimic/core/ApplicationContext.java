@@ -1,13 +1,9 @@
 package com.iimmersao.springmimic.core;
 
-import com.iimmersao.springmimic.annotations.Autowired;
-import com.iimmersao.springmimic.annotations.Component;
-import com.iimmersao.springmimic.annotations.Controller;
-import com.iimmersao.springmimic.annotations.Repository;
-import com.iimmersao.springmimic.annotations.Service;
-import com.iimmersao.springmimic.core.ComponentScanner;
+import com.iimmersao.springmimic.annotations.*;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -27,9 +23,14 @@ public class ApplicationContext {
     }
 
     public void initialize() {
-        Set<Class<?>> discoveredClasses = new ComponentScanner(basePackage).scan();
+        Set<Class<?>> componentClasses = new ComponentScanner(basePackage).scan();
 
-        for (Class<?> clazz : discoveredClasses) {
+        for (Class<?> clazz : componentClasses) {
+            // Skip classes already manually registered
+            if (manualBeans.containsKey(clazz)) {
+                continue;
+            }
+
             if (isComponentClass(clazz)) {
                 Object instance = createInstance(clazz);
                 components.put(clazz, instance);
@@ -49,18 +50,60 @@ public class ApplicationContext {
     }
 
     private Object createInstance(Class<?> clazz) {
+        // 1. Check if instance already exists (in manually registered or scanned)
+        if (manualBeans.containsKey(clazz)) {
+            return manualBeans.get(clazz);
+        }
+        if (components.containsKey(clazz)) {
+            return components.get(clazz);
+        }
+
         try {
-            Object instance = clazz.getDeclaredConstructor().newInstance();
-            injectDependencies(instance);
+            Constructor<?>[] constructors = clazz.getConstructors();
+            Constructor<?> targetConstructor = null;
+
+            // Choose the constructor with the most parameters (simple strategy)
+            for (Constructor<?> ctor : constructors) {
+                if (targetConstructor == null ||
+                        ctor.getParameterCount() > targetConstructor.getParameterCount()) {
+                    targetConstructor = ctor;
+                }
+            }
+
+            if (targetConstructor == null) {
+                throw new IllegalStateException("No public constructor found for: " + clazz.getName());
+            }
+
+            // Resolve constructor parameters recursively
+            Class<?>[] paramTypes = targetConstructor.getParameterTypes();
+            Object[] paramInstances = new Object[paramTypes.length];
+
+            for (int i = 0; i < paramTypes.length; i++) {
+                Class<?> paramType = paramTypes[i];
+
+                Object paramInstance = manualBeans.getOrDefault(paramType, components.get(paramType));
+
+                // Recursively create if not found
+                if (paramInstance == null) {
+                    paramInstance = createInstance(paramType);
+                    components.put(paramType, paramInstance); // cache it
+                }
+
+                paramInstances[i] = paramInstance;
+            }
+
+            Object instance = targetConstructor.newInstance(paramInstances);
+            components.put(clazz, instance); // cache this component too
             return instance;
+
         } catch (Exception e) {
-            throw new RuntimeException("Failed to instantiate: " + clazz.getName(), e);
+            throw new RuntimeException("Failed to create instance of: " + clazz.getName(), e);
         }
     }
 
     private void injectDependencies(Object instance) {
         for (Field field : instance.getClass().getDeclaredFields()) {
-            if (field.isAnnotationPresent(Autowired.class)) {
+            if (field.isAnnotationPresent(Autowired.class) || field.isAnnotationPresent(Inject.class)) {
                 Object dependency = resolveDependency(field.getType());
                 if (dependency == null) {
                     throw new RuntimeException("No bean found for type: " + field.getType().getName());

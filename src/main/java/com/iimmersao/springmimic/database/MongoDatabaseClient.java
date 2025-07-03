@@ -6,7 +6,6 @@ import com.iimmersao.springmimic.annotations.Column;
 import com.iimmersao.springmimic.annotations.Id;
 import com.iimmersao.springmimic.annotations.Table;
 import com.iimmersao.springmimic.core.ConfigLoader;
-import com.iimmersao.springmimic.database.DatabaseClient;
 import com.iimmersao.springmimic.exceptions.DatabaseException;
 import org.bson.Document;
 import org.bson.types.ObjectId;
