@@ -54,14 +54,17 @@ public class Main {
             context.registerBean(UserService.class, userService);
              */
 
-            // Start the web server
-            Router router = new Router();
-            router.registerControllers(context.getControllers());
             //int port = config.getInt("server.port", 8080);
             Port port = new Port(config.getInt("server.port", 8080));
             context.registerBean(Port.class, port);
+
             //WebServer server = new WebServer(port, router);
             context.initialize();
+            Router router = new Router();
+            router.registerControllers(context.getControllers());
+            context.registerBean(Router.class, router);
+            context.injectDependencies();
+            // Start the web server
             WebServer server = context.getBean(WebServer.class);
             server.start();
 

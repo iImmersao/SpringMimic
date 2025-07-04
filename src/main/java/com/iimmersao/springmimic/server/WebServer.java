@@ -26,6 +26,7 @@ public class WebServer extends NanoHTTPD {
 
     private static final Logger log = LoggerFactory.getLogger(WebServer.class);
 
+    @Inject
     private final Router router;
     private final ObjectMapper objectMapper = new ObjectMapper();
 

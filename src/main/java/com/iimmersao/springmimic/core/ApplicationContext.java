@@ -37,6 +37,12 @@ public class ApplicationContext {
             }
         }
 
+//        for (Object instance : components.values()) {
+//            injectDependencies(instance);
+//        }
+    }
+
+    public void injectDependencies() {
         for (Object instance : components.values()) {
             injectDependencies(instance);
         }

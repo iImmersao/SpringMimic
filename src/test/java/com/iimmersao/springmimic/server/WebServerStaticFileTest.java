@@ -69,7 +69,7 @@ class WebServerStaticFileTest {
         context.initialize();
 
 
-        context.initialize();
+        context.injectDependencies();
 
         server = context.getBean(WebServer.class);
         server.start(port);
