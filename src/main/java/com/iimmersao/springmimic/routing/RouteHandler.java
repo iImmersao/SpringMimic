@@ -3,6 +3,7 @@ package com.iimmersao.springmimic.routing;
 import com.iimmersao.springmimic.annotations.PathVariable;
 import com.iimmersao.springmimic.annotations.RequestBody;
 import com.iimmersao.springmimic.annotations.RequestParam;
+import com.iimmersao.springmimic.core.ExceptionHandler;
 import com.iimmersao.springmimic.core.util.PathUtils;
 import fi.iki.elonen.NanoHTTPD;
 import fi.iki.elonen.NanoHTTPD.IHTTPSession;
@@ -141,70 +142,72 @@ public class RouteHandler {
 
     public Response handle(IHTTPSession session, Matcher pathMatcher) {
         try {
-            Map<String, String> pathVariables = extractPathVariables(pathMatcher);
-            Map<String, List<String>> queryParams = decodeQueryParams(session.getQueryParameterString());
-
             Parameter[] parameters = method.getParameters();
             Object[] args = new Object[parameters.length];
 
-            Map<String, String> files = new HashMap<>();
-            String rawBody = extractRequestBody(session);
+            // Extract path variables
+            Map<String, String> pathVariables = extractPathVariables(pathMatcher);
 
+            // Extract query params (as Map<String, List<String>>)
+            String queryString = session.getQueryParameterString();
+            Map<String, List<String>> queryParams = decodeQueryParams(queryString);
+
+            // Extract request body if needed
+            String rawBody = null;
+            String httpMethod = session.getMethod().name();
+            if (httpMethod.equals("POST") || httpMethod.equals("PUT") || httpMethod.equals("PATCH")) {
+                String contentLengthHeader = session.getHeaders().get("content-length");
+                if (contentLengthHeader != null) {
+                    int contentLength = Integer.parseInt(contentLengthHeader);
+                    rawBody = new String(session.getInputStream().readNBytes(contentLength), StandardCharsets.UTF_8);
+                }
+            }
+
+            // Resolve arguments
             for (int i = 0; i < parameters.length; i++) {
-                Parameter parameter = parameters[i];
-                Object argument = null;
+                Parameter param = parameters[i];
 
-                if (parameter.isAnnotationPresent(PathVariable.class)) {
-                    String name = parameter.getAnnotation(PathVariable.class).value();
+                if (param.isAnnotationPresent(PathVariable.class)) {
+                    String name = param.getAnnotation(PathVariable.class).value();
                     String value = pathVariables.get(name);
                     if (value == null) {
-                        return NanoHTTPD.newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Missing path variable: " + name);
+                        throw new IllegalArgumentException("Missing path variable: " + name);
                     }
-                    argument = convertValue(value, parameter.getType(), name);
+                    args[i] = convertValue(value, param.getType(), name);
 
-                } else if (parameter.isAnnotationPresent(RequestParam.class)) {
-                    String name = parameter.getAnnotation(RequestParam.class).value();
+                } else if (param.isAnnotationPresent(RequestParam.class)) {
+                    String name = param.getAnnotation(RequestParam.class).value();
                     List<String> values = queryParams.get(name);
+
                     if (values != null && !values.isEmpty()) {
-                        argument = convertValue(values.get(0), parameter.getType(), name);
+                        args[i] = convertValue(values.get(0), param.getType(), name);
                     } else {
-                        argument = null; // treat as optional
-                        if (parameter.getType().isPrimitive()) {
-                            return NanoResponseHelper.badRequest("Missing required request parameter: " + name);
+                        args[i] = null; // treat as optional
+                        if (param.getType().isPrimitive()) {
+                            throw new IllegalArgumentException("Missing required request parameter: " + name);
                         }
                     }
 
-                } else if (parameter.isAnnotationPresent(RequestBody.class)) {
-                    if (rawBody == null || rawBody.isEmpty()) {
-                        return NanoHTTPD.newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Missing request body.");
+                } else if (param.isAnnotationPresent(RequestBody.class)) {
+                    if (rawBody == null || rawBody.isBlank()) {
+                        throw new IllegalArgumentException("Missing request body");
                     }
-                    try {
-                        argument = objectMapper.readValue(rawBody, parameter.getType());
-                    } catch (Exception e) {
-                        return NanoHTTPD.newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Invalid request body.");
-                    }
+                    args[i] = objectMapper.readValue(rawBody, param.getType());
+
+                } else {
+                    args[i] = null;
                 }
-
-                args[i] = argument;
             }
 
+            // Invoke and serialize result
             Object result = method.invoke(controllerInstance, args);
-            String responseJson = objectMapper.writeValueAsString(result);
-            return NanoHTTPD.newFixedLengthResponse(Response.Status.OK, "application/json", responseJson);
+            String json = objectMapper.writeValueAsString(result);
+            return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json", json);
 
-        } catch (IllegalArgumentException e) {
-            return NanoHTTPD.newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Bad Request: " + e.getMessage());
-        } catch (InvocationTargetException ex) {
-            Throwable cause = ex.getTargetException();
-            if (cause instanceof IllegalArgumentException) {
-                return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.BAD_REQUEST, "text/plain", cause.getMessage());
-            } else {
-                cause.printStackTrace();
-                return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.INTERNAL_ERROR, "text/plain", "Internal error: " + cause.getMessage());
-            }
+        } catch (InvocationTargetException e) {
+            return ExceptionHandler.handle((Exception) e.getTargetException());
         } catch (Exception e) {
-            e.printStackTrace();
-            return NanoHTTPD.newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "Internal server error.");
+            return ExceptionHandler.handle(e);
         }
     }
 

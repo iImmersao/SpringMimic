@@ -1,5 +1,6 @@
 package com.iimmersao.springmimic;
 
+import ch.qos.logback.classic.LoggerContext;
 import com.iimmersao.springmimic.client.RestClient;
 import com.iimmersao.springmimic.core.ApplicationContext;
 import com.iimmersao.springmimic.core.ConfigLoader;
@@ -8,12 +9,20 @@ import com.iimmersao.springmimic.database.MongoDatabaseClient;
 import com.iimmersao.springmimic.database.MySqlDatabaseClient;
 import com.iimmersao.springmimic.server.WebServer;
 import com.iimmersao.springmimic.routing.Router;
+import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 public class Main {
     public static void main(String[] args) {
         try {
             // Load configuration
             ConfigLoader config = new ConfigLoader("application.properties");
+            String logLevelStr = config.get("log.level", "INFO").toUpperCase();
+
+            LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+            loggerContext.getLogger("root")
+                    .setLevel(ch.qos.logback.classic.Level.convertAnSLF4JLevel(Level.valueOf(logLevelStr)));
+
             String dbType = config.get("db.type", "mysql").toLowerCase();
 
             // Create the appropriate DatabaseClient

@@ -4,12 +4,16 @@ import com.iimmersao.springmimic.annotations.*;
 import com.iimmersao.springmimic.client.RestClient;
 import com.iimmersao.springmimic.model.User;
 import com.iimmersao.springmimic.services.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
 
 @Controller
 public class UserController {
+
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
     @Inject
     RestClient restClient;
