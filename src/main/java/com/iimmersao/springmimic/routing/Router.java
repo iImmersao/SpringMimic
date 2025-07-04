@@ -8,6 +8,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@Component
 public class Router {
     private static final Pattern PATH_VARIABLE_PATTERN = Pattern.compile("\\{([^/]+)}");
 

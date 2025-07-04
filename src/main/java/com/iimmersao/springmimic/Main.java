@@ -7,21 +7,31 @@ import com.iimmersao.springmimic.core.ConfigLoader;
 import com.iimmersao.springmimic.database.DatabaseClient;
 import com.iimmersao.springmimic.database.MongoDatabaseClient;
 import com.iimmersao.springmimic.database.MySqlDatabaseClient;
+import com.iimmersao.springmimic.routing.Port;
 import com.iimmersao.springmimic.server.WebServer;
 import com.iimmersao.springmimic.routing.Router;
+import com.iimmersao.springmimic.services.UserService;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
 public class Main {
+    private static final Logger log = LoggerFactory.getLogger(Main.class);
+
     public static void main(String[] args) {
         try {
             // Load configuration
             ConfigLoader config = new ConfigLoader("application.properties");
-            String logLevelStr = config.get("log.level", "INFO").toUpperCase();
+            String level = config.get("logging.level");
+            if (level != null) System.setProperty("LOG_LEVEL", level.trim());
+
+            String outputFile = config.get("logging.file");
+            if (outputFile != null) System.setProperty("LOG_FILE", outputFile.trim());
+            //String logLevelStr = config.get("log.level", "INFO").toUpperCase();
 
             LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
             loggerContext.getLogger("root")
-                    .setLevel(ch.qos.logback.classic.Level.convertAnSLF4JLevel(Level.valueOf(logLevelStr)));
+                    .setLevel(ch.qos.logback.classic.Level.convertAnSLF4JLevel(Level.valueOf(level)));
 
             String dbType = config.get("db.type", "mysql").toLowerCase();
 
@@ -43,16 +53,21 @@ public class Main {
             UserService userService = new UserService();
             context.registerBean(UserService.class, userService);
              */
-            context.initialize();
 
             // Start the web server
             Router router = new Router();
             router.registerControllers(context.getControllers());
-            int port = config.getInt("server.port", 8080);
-            WebServer server = new WebServer(port, router);
+            //int port = config.getInt("server.port", 8080);
+            Port port = new Port(config.getInt("server.port", 8080));
+            context.registerBean(Port.class, port);
+            //WebServer server = new WebServer(port, router);
+            context.initialize();
+            WebServer server = context.getBean(WebServer.class);
             server.start();
 
             System.out.println("Server started on port " + port);
+            log.info("Application started with database: {}", config.get("db.type"));
+            log.info("Environment: {}", config.get("env", "development"));
             // Block main thread
             Thread.currentThread().join();
         } catch (Exception e) {

@@ -1,6 +1,12 @@
 package com.iimmersao.springmimic.server;
 
+import com.iimmersao.springmimic.client.RestClient;
 import com.iimmersao.springmimic.core.ApplicationContext;
+import com.iimmersao.springmimic.core.ConfigLoader;
+import com.iimmersao.springmimic.database.DatabaseClient;
+import com.iimmersao.springmimic.database.MongoDatabaseClient;
+import com.iimmersao.springmimic.database.MySqlDatabaseClient;
+import com.iimmersao.springmimic.routing.Port;
 import com.iimmersao.springmimic.routing.Router;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -30,7 +36,26 @@ class WebServerTest {
         context.initialize();
         Router router = new Router();
         router.registerControllers(context.getControllers());
-        server = new WebServer(port, router);
+        ApplicationContext realContext = new ApplicationContext("com.iimmersao.springmimic");
+        realContext.registerBean(Router.class, router);
+        ConfigLoader config = new ConfigLoader("application.properties");
+        realContext.registerBean(ConfigLoader.class, config);
+        // Create the appropriate DatabaseClient
+        DatabaseClient databaseClient;
+        String dbType = config.get("db.type", "mysql").toLowerCase();
+        switch (dbType) {
+            case "mongo", "mongodb" -> databaseClient = new MongoDatabaseClient(config);
+            case "mysql" -> databaseClient = new MySqlDatabaseClient(config);
+            default -> throw new IllegalArgumentException("Unsupported database type: " + dbType);
+        }
+        realContext.registerBean(DatabaseClient.class, databaseClient);
+        Port portToUse = new Port(config.getInt("server.port", port));
+        realContext.registerBean(Port.class, portToUse);
+        RestClient restClient = new RestClient();
+        realContext.registerBean(RestClient.class, restClient);
+        realContext.initialize();
+        //server = new WebServer(portToUse, router);
+        server = realContext.getBean(WebServer.class);
         server.start(1000, false);
 
         // Give the server a moment to bind the port

@@ -26,7 +26,7 @@ public class MySqlDatabaseClient implements DatabaseClient {
             connection = DriverManager.getConnection(
                     url, username, password);
         } catch (Exception e) {
-            throw new DatabaseException("Failed to connect to MongoDB", e);
+            throw new DatabaseException("Failed to connect to MySql", e);
         }
     }
 
