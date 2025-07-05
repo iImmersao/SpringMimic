@@ -3,11 +3,15 @@ package com.iimmersao.springmimic.database;
 import com.iimmersao.springmimic.core.ConfigLoader;
 import com.iimmersao.springmimic.exceptions.DatabaseException;
 import com.iimmersao.springmimic.model.TestMongoUser;
+import com.iimmersao.springmimic.web.PageRequest;
 import org.junit.jupiter.api.*;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -97,5 +101,76 @@ public class MongoDatabaseClientTest {
         mongoClient.deleteAll(TestMongoUser.class);
         List<TestMongoUser> users = mongoClient.findAll(TestMongoUser.class);
         assertTrue(users.isEmpty());
+    }
+
+    @Test
+    void shouldReturnPagedResults() throws Exception {
+        // Arrange
+        for (int i = 1; i <= 10; i++) {
+            TestMongoUser user = new TestMongoUser();
+            user.setUsername("user" + i);
+            user.setEmail("user" + i + "@example.com");
+            mongoClient.save(user);
+        }
+
+        PageRequest pageRequest = new PageRequest();
+        pageRequest.setPage(1);  // second page
+        pageRequest.setSize(3);  // 3 per page
+
+        // Act
+        List<?> results = mongoClient.findAll(TestMongoUser.class, pageRequest);
+
+        // Assert
+        assertEquals(3, results.size(), "Expected 3 users on page 1");
+    }
+
+    @Test
+    void shouldReturnSortedResults() throws Exception {
+        // Arrange
+        String[] usernames = { "zeta", "alpha", "beta" };
+        for (String name : usernames) {
+            TestMongoUser user = new TestMongoUser();
+            user.setUsername(name);
+            user.setEmail(name + "@example.com");
+            mongoClient.save(user);
+        }
+
+        PageRequest pageRequest = new PageRequest();
+        pageRequest.setSortBy("username, asc");
+
+        // Act
+        List<?> results = mongoClient.findAll(TestMongoUser.class, pageRequest);
+        List<String> resultUsernames = results.stream()
+                .map(u -> ((TestMongoUser) u).getUsername())
+                .collect(Collectors.toList());
+
+        // Assert
+        assertEquals(List.of("alpha", "beta", "zeta"), resultUsernames);
+    }
+
+    @Test
+    void shouldReturnFilteredResults() throws Exception {
+        // Arrange
+        TestMongoUser targetUser = new TestMongoUser();
+        targetUser.setUsername("filterme");
+        targetUser.setEmail("filterme@example.com");
+        mongoClient.save(targetUser);
+
+        TestMongoUser otherUser = new TestMongoUser();
+        otherUser.setUsername("other");
+        otherUser.setEmail("other@example.com");
+        mongoClient.save(otherUser);
+
+        PageRequest pageRequest = new PageRequest();
+        Map<String, String> filters = new HashMap<>();
+        filters.put("username", "filterme");
+        pageRequest.setFilters(filters);
+
+        // Act
+        List<?> results = mongoClient.findAll(TestMongoUser.class, pageRequest);
+
+        // Assert
+        assertEquals(1, results.size());
+        assertEquals("filterme", ((TestMongoUser) results.get(0)).getUsername());
     }
 }

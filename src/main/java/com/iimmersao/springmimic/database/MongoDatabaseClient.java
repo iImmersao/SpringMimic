@@ -6,13 +6,20 @@ import com.iimmersao.springmimic.annotations.Column;
 import com.iimmersao.springmimic.annotations.Id;
 import com.iimmersao.springmimic.annotations.Table;
 import com.iimmersao.springmimic.core.ConfigLoader;
+import com.iimmersao.springmimic.core.util.FieldValidator;
 import com.iimmersao.springmimic.exceptions.DatabaseException;
+import com.iimmersao.springmimic.web.PageRequest;
+
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Sorts;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 import com.mongodb.client.*;
 
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.mongodb.client.model.Filters.eq;
 
@@ -131,6 +138,44 @@ public class MongoDatabaseClient implements DatabaseClient {
         } catch (Exception e) {
             throw new DatabaseException("Failed to delete all entities", e);
         }
+    }
+
+    @Override
+    public <T> List<T> findAll(Class<T> entityType, PageRequest pageRequest) {
+        String collectionName = getCollectionName(entityType);
+        MongoCollection<Document> collection = database.getCollection(collectionName);
+
+        FindIterable<Document> iterable = collection.find()
+                .skip(pageRequest.getPage() * pageRequest.getSize())
+                .limit(pageRequest.getSize());
+
+        if (!pageRequest.getFilters().isEmpty()) {
+            FieldValidator.validateFieldsExist(entityType, pageRequest.getFilters().keySet().stream().toList());
+            Bson filter = Filters.and(
+                    pageRequest.getFilters().entrySet().stream()
+                            .map(entry -> Filters.eq(entry.getKey(), entry.getValue()))
+                            .collect(Collectors.toList())
+            );
+            iterable.filter(filter);
+        }
+
+        if (pageRequest.getSortBy() != null) {
+            String[] sortParts = pageRequest.getSortBy().split(",");
+            String field = sortParts[0];
+            int direction = (sortParts.length > 1 && "desc".equalsIgnoreCase(sortParts[1])) ? -1 : 1;
+            iterable.sort(Sorts.orderBy(direction == 1 ? Sorts.ascending(field) : Sorts.descending(field)));
+        }
+
+        List<T> results = new ArrayList<>();
+        for (Document doc : iterable) {
+            try {
+                results.add(fromDocument(doc, entityType));
+            } catch (Exception e) {
+                throw new DatabaseException("Failed to deserialize document to " + entityType.getSimpleName(), e);
+            }
+        }
+
+        return results;
     }
 
     // ----------------------

@@ -4,11 +4,15 @@ import com.iimmersao.springmimic.annotations.*;
 import com.iimmersao.springmimic.client.RestClient;
 import com.iimmersao.springmimic.model.User;
 import com.iimmersao.springmimic.services.UserService;
+import com.iimmersao.springmimic.web.PageRequest;
+import fi.iki.elonen.NanoHTTPD;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.Optional;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Controller
 public class UserController {
@@ -49,8 +53,48 @@ public class UserController {
     }
 
     @GetMapping("/users")
-    public List<User> getAllUsers() {
-        return userService.findAll();
+    public List<User> getUsers(
+            @RequestParam(value = "page", required = false) Integer page,
+            @RequestParam(value = "size", required = false) Integer size,
+            @RequestParam(value = "sortBy", required = false) String sortBy,
+            NanoHTTPD.IHTTPSession session
+    ) {
+        // Extract all query params
+        Map<String, List<String>> rawQueryParams = decodeQueryParams(session.getQueryParameterString());
+
+        // Known paging/sorting params
+        Set<String> knownKeys = Set.of("page", "size", "sortBy");
+
+        // Filter out paging/sorting from filters
+        Map<String, String> filters = rawQueryParams.entrySet().stream()
+                .filter(entry -> !knownKeys.contains(entry.getKey()))
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> e.getValue().get(0)) // use first value
+                );
+
+        PageRequest pageRequest = new PageRequest(
+                page != null ? page : 0,
+                size != null ? size : 10,
+                sortBy,
+                filters
+        );
+
+        return userService.findAll(pageRequest);
+    }
+
+    public Map<String, List<String>> decodeQueryParams(String queryString) {
+        Map<String, List<String>> params = new HashMap<>();
+        if (queryString == null || queryString.isEmpty()) return params;
+
+        for (String param : queryString.split("&")) {
+            String[] pair = param.split("=", 2);
+            String key = URLDecoder.decode(pair[0], StandardCharsets.UTF_8);
+            String value = pair.length > 1 ? URLDecoder.decode(pair[1], StandardCharsets.UTF_8) : "";
+
+            params.computeIfAbsent(key, k -> new ArrayList<>()).add(value);
+        }
+        return params;
     }
 
     @PutMapping("/users/{id}")

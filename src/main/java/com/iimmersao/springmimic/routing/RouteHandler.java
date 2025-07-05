@@ -7,6 +7,7 @@ import com.iimmersao.springmimic.annotations.RequestParam;
 import com.iimmersao.springmimic.core.ExceptionHandler;
 import com.iimmersao.springmimic.core.util.PathUtils;
 import com.iimmersao.springmimic.openapi.MethodParameter;
+import com.iimmersao.springmimic.web.PageRequest;
 import fi.iki.elonen.NanoHTTPD;
 import fi.iki.elonen.NanoHTTPD.IHTTPSession;
 import fi.iki.elonen.NanoHTTPD.Response;
@@ -171,6 +172,35 @@ public class RouteHandler {
             for (int i = 0; i < parameters.length; i++) {
                 Parameter param = parameters[i];
 
+
+                if (param.getType().equals(PageRequest.class)) {
+                    PageRequest pageRequest = new PageRequest();
+
+                    List<String> pageVals = queryParams.get("page");
+                    List<String> sizeVals = queryParams.get("size");
+                    List<String> sortVals = queryParams.get("sort");
+
+                    if (pageVals != null && !pageVals.isEmpty()) {
+                        try {
+                            pageRequest.setPage(Integer.parseInt(pageVals.get(0)));
+                        } catch (NumberFormatException ignored) {}
+                    }
+
+                    if (sizeVals != null && !sizeVals.isEmpty()) {
+                        try {
+                            pageRequest.setSize(Integer.parseInt(sizeVals.get(0)));
+                        } catch (NumberFormatException ignored) {}
+                    }
+
+                    if (sortVals != null && !sortVals.isEmpty()) {
+                        pageRequest.setSortBy(sortVals.get(0));
+                    }
+
+                    args[i] = pageRequest;
+                    continue;
+                }
+
+
                 if (param.isAnnotationPresent(PathVariable.class)) {
                     String name = param.getAnnotation(PathVariable.class).value();
                     String value = pathVariables.get(name);
@@ -198,6 +228,8 @@ public class RouteHandler {
                     }
                     args[i] = objectMapper.readValue(rawBody, param.getType());
 
+                } else if (param.getType().equals(NanoHTTPD.IHTTPSession.class)) {
+                        args[i] = session;
                 } else {
                     args[i] = null;
                 }

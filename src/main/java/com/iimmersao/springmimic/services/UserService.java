@@ -8,6 +8,7 @@ import com.iimmersao.springmimic.model.MongoUser;
 import com.iimmersao.springmimic.model.MySqlUser;
 import com.iimmersao.springmimic.model.User;
 import com.iimmersao.springmimic.model.UserMapper;
+import com.iimmersao.springmimic.web.PageRequest;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -71,6 +72,13 @@ public class UserService {
 
     public void deleteAll() {
         databaseClient.deleteAll(getEntityClass());
+    }
+
+    public List<User> findAll(PageRequest pageRequest) {
+        List<?> entities = databaseClient.findAll(getEntityClass(), pageRequest);
+        return entities.stream()
+                .map(UserMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
     // Convert String id to the appropriate type for the selected backend

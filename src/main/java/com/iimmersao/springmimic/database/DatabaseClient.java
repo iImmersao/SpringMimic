@@ -1,6 +1,7 @@
 package com.iimmersao.springmimic.database;
 
 import com.iimmersao.springmimic.annotations.Bean;
+import com.iimmersao.springmimic.web.PageRequest;
 
 import java.util.List;
 import java.util.Optional;
@@ -37,4 +38,6 @@ public interface DatabaseClient {
      * Deletes all entities of a given type.
      */
     <T> void deleteAll(Class<T> entityType);
+
+    <T> List<T> findAll(Class<T> entityType, PageRequest pageRequest);
 }

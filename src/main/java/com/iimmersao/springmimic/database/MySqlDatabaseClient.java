@@ -1,14 +1,15 @@
 package com.iimmersao.springmimic.database;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iimmersao.springmimic.annotations.*;
 import com.iimmersao.springmimic.core.ConfigLoader;
+import com.iimmersao.springmimic.core.util.FieldValidator;
 import com.iimmersao.springmimic.exceptions.DatabaseException;
-import com.mongodb.client.MongoClients;
+import com.iimmersao.springmimic.web.PageRequest;
 
 import java.lang.reflect.Field;
 import java.sql.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Bean
 public class MySqlDatabaseClient implements DatabaseClient {
@@ -229,7 +230,75 @@ public class MySqlDatabaseClient implements DatabaseClient {
         }
     }
 
+    @Override
+    public <T> List<T> findAll(Class<T> entityType, PageRequest pageRequest) {
+        List<T> result = new ArrayList<>();
+
+        String table = getTableName(entityType);
+        StringBuilder query = new StringBuilder("SELECT * FROM " + table);
+
+        Map<String, String> filters = pageRequest.getFilters();
+        List<Object> values = new ArrayList<>();
+
+        if (!filters.isEmpty()) {
+            query.append(" WHERE ");
+            List<String> conditions = new ArrayList<>();
+            for (Map.Entry<String, String> entry : filters.entrySet()) {
+                conditions.add(entry.getKey() + " = ?");
+                values.add(entry.getValue()); // store the actual value to bind
+            }
+            query.append(String.join(" AND ", conditions));
+        }
+
+        // Add sorting
+        if (pageRequest.getSortBy() != null) {
+          String[] sortParts = pageRequest.getSortBy().split(",");
+          String sortField = sortParts[0];
+
+          if (!isValidField(entityType, sortField)) {
+              throw new IllegalArgumentException("Invalid sort field: " + sortField);
+          }
+          String direction = (sortParts.length > 1 && "desc".equalsIgnoreCase(sortParts[1])) ? "DESC" : "ASC";
+          query.append(" ORDER BY ").append(sortField).append(" ").append(direction);
+        }
+
+        // Pagination
+        query.append(" LIMIT ? OFFSET ?");
+        values.add(pageRequest.getSize());
+        values.add(pageRequest.getPage());
+
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query.toString())) {
+
+            // Set values for placeholders
+            for (int i = 0; i < values.size(); i++) {
+                stmt.setObject(i + 1, values.get(i));
+            }
+
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                T entity = mapResultSetToObject(entityType, rs);
+                result.add(entity);
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to execute query: " + query, e);
+        }
+
+        return result;
+    }
+
     // ===== Helper Methods =====
+
+    private boolean isValidField(Class<?> clazz, String fieldName) {
+        for (Field field : clazz.getDeclaredFields()) {
+            if (field.getName().equals(fieldName)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     private String getTableName(Class<?> clazz) {
         if (!clazz.isAnnotationPresent(Entity.class)) {
