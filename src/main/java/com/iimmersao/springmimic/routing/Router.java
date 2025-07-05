@@ -1,6 +1,8 @@
 package com.iimmersao.springmimic.routing;
 
 import com.iimmersao.springmimic.annotations.*;
+import com.iimmersao.springmimic.openapi.MethodParameter;
+import com.iimmersao.springmimic.openapi.ParameterIntrospector;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
@@ -23,6 +25,7 @@ public class Router {
         for (Object controller : controllers) {
             Class<?> clazz = controller.getClass();
             for (Method method : clazz.getDeclaredMethods()) {
+                List<MethodParameter> params = ParameterIntrospector.extractParameters(method);
                 Annotation[] annotations = method.getAnnotations();
                 for (Annotation annotation : annotations) {
                     String httpMethod = null;
@@ -47,8 +50,8 @@ public class Router {
 
                     if (httpMethod != null && path != null) {
                         Pattern regexPattern = pathToRegex(path);
-                        RouteHandler handler = new RouteHandler(httpMethod, path, controller, method);
-                        routes.add(new RouteEntry(httpMethod, regexPattern, handler));
+                        RouteHandler handler = new RouteHandler(httpMethod, path, controller, method, params);
+                        routes.add(new RouteEntry(httpMethod, path, regexPattern, handler));
                     }
                 }
             }
@@ -67,5 +70,9 @@ public class Router {
         return null;
     }
 
-    private record RouteEntry(String httpMethod, Pattern pattern, RouteHandler handler) {}
+    public List<RouteEntry> getRoutes() {
+        return Collections.unmodifiableList(routes);
+    }
+
+    public record RouteEntry(String httpMethod, String path, Pattern pattern, RouteHandler handler) {}
 }

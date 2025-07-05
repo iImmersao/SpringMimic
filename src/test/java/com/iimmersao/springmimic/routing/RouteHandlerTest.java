@@ -4,6 +4,8 @@ import com.iimmersao.springmimic.annotations.GetMapping;
 import com.iimmersao.springmimic.annotations.PathVariable;
 import com.iimmersao.springmimic.annotations.RequestBody;
 import com.iimmersao.springmimic.annotations.RequestParam;
+import com.iimmersao.springmimic.openapi.MethodParameter;
+import com.iimmersao.springmimic.openapi.ParameterIntrospector;
 import fi.iki.elonen.NanoHTTPD;
 import org.junit.jupiter.api.Test;
 
@@ -14,6 +16,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -110,7 +113,8 @@ public class RouteHandlerTest {
 
         TestController controller = new TestController();
         Method method = controller.getClass().getMethod("getUser", String.class, boolean.class);
-        RouteHandler handler = new RouteHandler("GET", "/users/{id}", controller, method);
+        List<MethodParameter> params = ParameterIntrospector.extractParameters(method);
+        RouteHandler handler = new RouteHandler("GET", "/users/{id}", controller, method, params);
 
         Matcher matcher = matchUri("/users/{id}", "/users/abc123");
         Response response = handler.handle(session, matcher);
@@ -126,7 +130,8 @@ public class RouteHandlerTest {
 
         TestController controller = new TestController();
         Method method = controller.getClass().getMethod("getUser", String.class, boolean.class);
-        RouteHandler handler = new RouteHandler("GET", "/users/{id}", controller, method);
+        List<MethodParameter> params = ParameterIntrospector.extractParameters(method);
+        RouteHandler handler = new RouteHandler("GET", "/users/{id}", controller, method, params);
 
         Matcher matcher = matchUri("/users/{id}", "/users/abc123");
         Response response = handler.handle(session, matcher);
@@ -140,7 +145,8 @@ public class RouteHandlerTest {
 
         TestController controller = new TestController();
         Method method = controller.getClass().getMethod("getUser", String.class, boolean.class);
-        RouteHandler handler = new RouteHandler("GET", "/users/{id}", controller, method);
+        List<MethodParameter> params = ParameterIntrospector.extractParameters(method);
+        RouteHandler handler = new RouteHandler("GET", "/users/{id}", controller, method, params);
 
         Matcher matcher = matchUri("/users/{id}", "/users/abc123");
         Response response = handler.handle(session, matcher);
@@ -155,7 +161,8 @@ public class RouteHandlerTest {
 
         TestController controller = new TestController();
         Method method = controller.getClass().getMethod("createUser", TestController.User.class);
-        RouteHandler handler = new RouteHandler("POST", "/users", controller, method);
+        List<MethodParameter> params = ParameterIntrospector.extractParameters(method);
+        RouteHandler handler = new RouteHandler("POST", "/users", controller, method, params);
 
         Matcher matcher = matchUri("/users", "/users");
         Response response = handler.handle(session, matcher);
@@ -172,7 +179,8 @@ public class RouteHandlerTest {
 
         TestController controller = new TestController();
         Method method = controller.getClass().getMethod("createUser", TestController.User.class);
-        RouteHandler handler = new RouteHandler("POST", "/users", controller, method);
+        List<MethodParameter> params = ParameterIntrospector.extractParameters(method);
+        RouteHandler handler = new RouteHandler("POST", "/users", controller, method, params);
 
         Matcher matcher = matchUri("/users", "/users");
         assertTrue(matcher.matches());
@@ -189,7 +197,8 @@ public class RouteHandlerTest {
 
         TestController controller = new TestController();
         Method method = TestController.class.getMethod("createUser", TestController.User.class);
-        RouteHandler handler = new RouteHandler("POST", "/users", controller, method);
+        List<MethodParameter> params = ParameterIntrospector.extractParameters(method);
+        RouteHandler handler = new RouteHandler("POST", "/users", controller, method, params);
 
         Matcher matcher = matchUri("/users", "/users");
         assertTrue(matcher.matches());
@@ -207,7 +216,8 @@ public class RouteHandlerTest {
 
         TestController controller = new TestController();
         Method method = TestController.class.getMethod("updateUser", TestController.User.class);
-        RouteHandler handler = new RouteHandler("PUT", "/users", controller, method);
+        List<MethodParameter> params = ParameterIntrospector.extractParameters(method);
+        RouteHandler handler = new RouteHandler("PUT", "/users", controller, method, params);
 
         Matcher matcher = matchUri("/users", "/users");
         assertTrue(matcher.matches());
@@ -225,7 +235,8 @@ public class RouteHandlerTest {
 
         TestController controller = new TestController();
         Method method = TestController.class.getMethod("patchUser", TestController.User.class);
-        RouteHandler handler = new RouteHandler("PATCH", "/users", controller, method);
+        List<MethodParameter> params = ParameterIntrospector.extractParameters(method);
+        RouteHandler handler = new RouteHandler("PATCH", "/users", controller, method, params);
 
         Matcher matcher = matchUri("/users", "/users");
         assertTrue(matcher.matches());
@@ -242,7 +253,8 @@ public class RouteHandlerTest {
 
         TestController controller = new TestController();
         Method method = TestController.class.getMethod("deleteUser", String.class);
-        RouteHandler handler = new RouteHandler("DELETE", "/users/{id}", controller, method);
+        List<MethodParameter> params = ParameterIntrospector.extractParameters(method);
+        RouteHandler handler = new RouteHandler("DELETE", "/users/{id}", controller, method, params);
 
         Matcher matcher = matchUri("/users/{id}", "/users/abc123");
         assertTrue(matcher.matches());

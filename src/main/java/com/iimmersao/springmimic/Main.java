@@ -10,7 +10,6 @@ import com.iimmersao.springmimic.database.MySqlDatabaseClient;
 import com.iimmersao.springmimic.routing.Port;
 import com.iimmersao.springmimic.server.WebServer;
 import com.iimmersao.springmimic.routing.Router;
-import com.iimmersao.springmimic.services.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
@@ -27,7 +26,6 @@ public class Main {
 
             String outputFile = config.get("logging.file");
             if (outputFile != null) System.setProperty("LOG_FILE", outputFile.trim());
-            //String logLevelStr = config.get("log.level", "INFO").toUpperCase();
 
             LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
             loggerContext.getLogger("root")
@@ -45,25 +43,20 @@ public class Main {
 
             // Create application context and manually register the client
             ApplicationContext context = new ApplicationContext("com.iimmersao.springmimic");
+            context.registerBean(ApplicationContext.class, context); // Move to constructor?
             context.registerBean(DatabaseClient.class, databaseClient);
             context.registerBean(ConfigLoader.class, config);
             RestClient restClient = new RestClient();
             context.registerBean(RestClient.class, restClient);
-            /*
-            UserService userService = new UserService();
-            context.registerBean(UserService.class, userService);
-             */
-
-            //int port = config.getInt("server.port", 8080);
             Port port = new Port(config.getInt("server.port", 8080));
             context.registerBean(Port.class, port);
 
-            //WebServer server = new WebServer(port, router);
             context.initialize();
             Router router = new Router();
             router.registerControllers(context.getControllers());
             context.registerBean(Router.class, router);
             context.injectDependencies();
+
             // Start the web server
             WebServer server = context.getBean(WebServer.class);
             server.start();

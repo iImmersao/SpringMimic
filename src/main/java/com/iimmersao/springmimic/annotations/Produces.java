@@ -2,8 +2,8 @@ package com.iimmersao.springmimic.annotations;
 
 import java.lang.annotation.*;
 
-@Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface RequestParam {
+@Target(ElementType.METHOD)
+public @interface Produces {
     String value();
-    boolean required() default true;}
+}

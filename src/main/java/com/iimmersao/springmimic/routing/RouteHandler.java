@@ -1,10 +1,12 @@
 package com.iimmersao.springmimic.routing;
 
 import com.iimmersao.springmimic.annotations.PathVariable;
+import com.iimmersao.springmimic.annotations.Produces;
 import com.iimmersao.springmimic.annotations.RequestBody;
 import com.iimmersao.springmimic.annotations.RequestParam;
 import com.iimmersao.springmimic.core.ExceptionHandler;
 import com.iimmersao.springmimic.core.util.PathUtils;
+import com.iimmersao.springmimic.openapi.MethodParameter;
 import fi.iki.elonen.NanoHTTPD;
 import fi.iki.elonen.NanoHTTPD.IHTTPSession;
 import fi.iki.elonen.NanoHTTPD.Response;
@@ -24,6 +26,7 @@ public class RouteHandler {
     private final Object controllerInstance;
     private final Method method;
     private final Parameter[] parameters;
+    private final List<MethodParameter> params;
 
     private final String routePath;
     private final Pattern pattern;                 // Compiled regex for matching paths
@@ -31,12 +34,13 @@ public class RouteHandler {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public RouteHandler(String httpMethod, String routePath, Object controllerInstance, Method method) {
+    public RouteHandler(String httpMethod, String routePath, Object controllerInstance, Method method, List<MethodParameter> params) {
         this.httpMethod = httpMethod;
         this.controllerInstance = controllerInstance;
         this.method = method;
         this.parameters = method.getParameters();
         this.routePath = routePath;
+        this.params = params;
 
         this.pathVariableNames = new ArrayList<>();
         this.pattern = compilePattern(routePath, pathVariableNames);
@@ -201,6 +205,19 @@ public class RouteHandler {
 
             // Invoke and serialize result
             Object result = method.invoke(controllerInstance, args);
+
+            // Check for @Produces on the method
+            Produces produces = method.getAnnotation(Produces.class);
+
+            if (produces != null && "application/json".equalsIgnoreCase(produces.value())) {
+                String json = new ObjectMapper().writeValueAsString(result);
+                return NanoHTTPD.newFixedLengthResponse(
+                        NanoHTTPD.Response.Status.OK,
+                        "application/json",
+                        json
+                );
+            }
+
             String json = objectMapper.writeValueAsString(result);
             return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json", json);
 
@@ -236,6 +253,10 @@ public class RouteHandler {
         }
 
         throw new IllegalArgumentException("Unsupported parameter type: " + type.getSimpleName());
+    }
+
+    public List<MethodParameter> getMethodParameters() {
+        return params;
     }
 
     // Simple helper to build NanoHTTPD responses
