@@ -4,10 +4,7 @@ import com.iimmersao.springmimic.annotations.Inject;
 import com.iimmersao.springmimic.annotations.Service;
 import com.iimmersao.springmimic.core.ConfigLoader;
 import com.iimmersao.springmimic.database.DatabaseClient;
-import com.iimmersao.springmimic.model.MongoUser;
-import com.iimmersao.springmimic.model.MySqlUser;
-import com.iimmersao.springmimic.model.User;
-import com.iimmersao.springmimic.model.UserMapper;
+import com.iimmersao.springmimic.model.*;
 import com.iimmersao.springmimic.web.PageRequest;
 
 import java.util.List;
@@ -36,6 +33,7 @@ public class UserService {
     private Class<?> getEntityClass() {
         return switch (getDbType()) {
             case "mysql" -> MySqlUser.class;
+            case "h2" -> H2User.class;
             case "mongodb" -> MongoUser.class;
             default -> throw new IllegalStateException("Unsupported db.type: " + getDbType());
         };

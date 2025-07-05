@@ -5,6 +5,7 @@ import com.iimmersao.springmimic.client.RestClient;
 import com.iimmersao.springmimic.core.ApplicationContext;
 import com.iimmersao.springmimic.core.ConfigLoader;
 import com.iimmersao.springmimic.database.DatabaseClient;
+import com.iimmersao.springmimic.database.H2DatabaseClient;
 import com.iimmersao.springmimic.database.MongoDatabaseClient;
 import com.iimmersao.springmimic.database.MySqlDatabaseClient;
 import com.iimmersao.springmimic.routing.Port;
@@ -38,6 +39,7 @@ public class Main {
             switch (dbType) {
                 case "mongo", "mongodb" -> databaseClient = new MongoDatabaseClient(config);
                 case "mysql" -> databaseClient = new MySqlDatabaseClient(config);
+                case "h2" -> databaseClient = new H2DatabaseClient(config);
                 default -> throw new IllegalArgumentException("Unsupported database type: " + dbType);
             }
 

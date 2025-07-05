@@ -886,3 +886,348 @@ Caused by: java.sql.SQLException: No value specified for parameter 3
 2025-07-05 13:45:33 WARN  [NanoHttpd Request Processor (#4)] c.i.s.core.ExceptionHandler - Route not found: No route matched for GET /json
 2025-07-05 13:45:33 WARN  [NanoHttpd Request Processor (#6)] c.i.s.core.ExceptionHandler - Route not found: No route matched for GET /not-a-route
 2025-07-05 13:45:33 WARN  [NanoHttpd Request Processor (#7)] c.i.s.core.ExceptionHandler - Client error: Missing required request parameter: max
+2025-07-05 14:01:07 INFO  [main] com.iimmersao.springmimic.Main - Application started with database: mysql
+2025-07-05 14:01:07 INFO  [main] com.iimmersao.springmimic.Main - Environment: development
+2025-07-05 14:23:11 INFO  [main] com.iimmersao.springmimic.Main - Application started with database: h2
+2025-07-05 14:23:11 INFO  [main] com.iimmersao.springmimic.Main - Environment: development
+2025-07-05 14:23:33 ERROR [NanoHttpd Request Processor (#1)] c.i.s.core.ExceptionHandler - Internal server error: 
+java.lang.RuntimeException: Failed to fetch paginated results
+	at com.iimmersao.springmimic.database.H2DatabaseClient.findAll(H2DatabaseClient.java:235)
+	at com.iimmersao.springmimic.services.UserService.findAll(UserService.java:79)
+	at com.iimmersao.springmimic.controllers.UserController.getUsers(UserController.java:83)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at com.iimmersao.springmimic.routing.RouteHandler.handle(RouteHandler.java:239)
+	at com.iimmersao.springmimic.server.WebServer.serve(WebServer.java:65)
+	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:945)
+	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:192)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: java.sql.SQLException: The url cannot be null
+	at java.sql/java.sql.DriverManager.getConnection(DriverManager.java:666)
+	at java.sql/java.sql.DriverManager.getConnection(DriverManager.java:230)
+	at com.iimmersao.springmimic.database.H2DatabaseClient.getConnection(H2DatabaseClient.java:30)
+	at com.iimmersao.springmimic.database.H2DatabaseClient.findAll(H2DatabaseClient.java:219)
+	... 9 common frames omitted
+2025-07-05 14:23:40 ERROR [NanoHttpd Request Processor (#3)] c.i.s.core.ExceptionHandler - Internal server error: 
+java.lang.RuntimeException: Failed to fetch paginated results
+	at com.iimmersao.springmimic.database.H2DatabaseClient.findAll(H2DatabaseClient.java:235)
+	at com.iimmersao.springmimic.services.UserService.findAll(UserService.java:79)
+	at com.iimmersao.springmimic.controllers.UserController.getUsers(UserController.java:83)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at com.iimmersao.springmimic.routing.RouteHandler.handle(RouteHandler.java:239)
+	at com.iimmersao.springmimic.server.WebServer.serve(WebServer.java:65)
+	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:945)
+	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:192)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: java.sql.SQLException: The url cannot be null
+	at java.sql/java.sql.DriverManager.getConnection(DriverManager.java:666)
+	at java.sql/java.sql.DriverManager.getConnection(DriverManager.java:230)
+	at com.iimmersao.springmimic.database.H2DatabaseClient.getConnection(H2DatabaseClient.java:30)
+	at com.iimmersao.springmimic.database.H2DatabaseClient.findAll(H2DatabaseClient.java:219)
+	... 9 common frames omitted
+2025-07-05 14:23:41 ERROR [NanoHttpd Request Processor (#3)] c.i.s.core.ExceptionHandler - Internal server error: 
+java.lang.RuntimeException: Failed to fetch paginated results
+	at com.iimmersao.springmimic.database.H2DatabaseClient.findAll(H2DatabaseClient.java:235)
+	at com.iimmersao.springmimic.services.UserService.findAll(UserService.java:79)
+	at com.iimmersao.springmimic.controllers.UserController.getUsers(UserController.java:83)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at com.iimmersao.springmimic.routing.RouteHandler.handle(RouteHandler.java:239)
+	at com.iimmersao.springmimic.server.WebServer.serve(WebServer.java:65)
+	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:945)
+	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:192)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: java.sql.SQLException: The url cannot be null
+	at java.sql/java.sql.DriverManager.getConnection(DriverManager.java:666)
+	at java.sql/java.sql.DriverManager.getConnection(DriverManager.java:230)
+	at com.iimmersao.springmimic.database.H2DatabaseClient.getConnection(H2DatabaseClient.java:30)
+	at com.iimmersao.springmimic.database.H2DatabaseClient.findAll(H2DatabaseClient.java:219)
+	... 9 common frames omitted
+2025-07-05 14:23:57 WARN  [NanoHttpd Request Processor (#5)] c.i.s.core.ExceptionHandler - Client error: Unsupported dbType
+2025-07-05 14:24:55 INFO  [main] com.iimmersao.springmimic.Main - Application started with database: h2
+2025-07-05 14:24:55 INFO  [main] com.iimmersao.springmimic.Main - Environment: development
+2025-07-05 14:27:14 ERROR [NanoHttpd Request Processor (#1)] c.i.s.core.ExceptionHandler - Internal server error: 
+java.lang.RuntimeException: Failed to fetch paginated results
+	at com.iimmersao.springmimic.database.H2DatabaseClient.findAll(H2DatabaseClient.java:235)
+	at com.iimmersao.springmimic.services.UserService.findAll(UserService.java:79)
+	at com.iimmersao.springmimic.controllers.UserController.getUsers(UserController.java:83)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at com.iimmersao.springmimic.routing.RouteHandler.handle(RouteHandler.java:239)
+	at com.iimmersao.springmimic.server.WebServer.serve(WebServer.java:65)
+	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:945)
+	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:192)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: java.sql.SQLException: The url cannot be null
+	at java.sql/java.sql.DriverManager.getConnection(DriverManager.java:666)
+	at java.sql/java.sql.DriverManager.getConnection(DriverManager.java:230)
+	at com.iimmersao.springmimic.database.H2DatabaseClient.getConnection(H2DatabaseClient.java:30)
+	at com.iimmersao.springmimic.database.H2DatabaseClient.findAll(H2DatabaseClient.java:219)
+	... 9 common frames omitted
+2025-07-05 14:31:06 INFO  [main] com.iimmersao.springmimic.Main - Application started with database: h2
+2025-07-05 14:31:06 INFO  [main] com.iimmersao.springmimic.Main - Environment: development
+2025-07-05 14:31:49 ERROR [NanoHttpd Request Processor (#1)] c.i.s.core.ExceptionHandler - Internal server error: 
+java.lang.RuntimeException: Failed to fetch paginated results
+	at com.iimmersao.springmimic.database.H2DatabaseClient.findAll(H2DatabaseClient.java:235)
+	at com.iimmersao.springmimic.services.UserService.findAll(UserService.java:79)
+	at com.iimmersao.springmimic.controllers.UserController.getUsers(UserController.java:83)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at com.iimmersao.springmimic.routing.RouteHandler.handle(RouteHandler.java:239)
+	at com.iimmersao.springmimic.server.WebServer.serve(WebServer.java:65)
+	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:945)
+	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:192)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "MYSQLUSER" not found (this database is empty); SQL statement:
+SELECT * FROM mysqluser WHERE username = ? ORDER BY username DESC LIMIT ? OFFSET ? [42104-232]
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:514)
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
+	at org.h2.message.DbException.get(DbException.java:223)
+	at org.h2.message.DbException.get(DbException.java:199)
+	at org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7932)
+	at org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7916)
+	at org.h2.command.Parser.readTableOrView(Parser.java:7895)
+	at org.h2.command.Parser.readTablePrimary(Parser.java:1769)
+	at org.h2.command.Parser.readTableReference(Parser.java:2249)
+	at org.h2.command.Parser.parseSelectFromPart(Parser.java:2702)
+	at org.h2.command.Parser.parseSelect(Parser.java:2810)
+	at org.h2.command.Parser.parseQueryPrimary(Parser.java:2692)
+	at org.h2.command.Parser.parseQueryTerm(Parser.java:2547)
+	at org.h2.command.Parser.parseQueryExpressionBody(Parser.java:2526)
+	at org.h2.command.Parser.parseQueryExpressionBodyAndEndOfQuery(Parser.java:2519)
+	at org.h2.command.Parser.parseQueryExpression(Parser.java:2512)
+	at org.h2.command.Parser.parseQuery(Parser.java:2479)
+	at org.h2.command.Parser.parsePrepared(Parser.java:610)
+	at org.h2.command.Parser.parse(Parser.java:581)
+	at org.h2.command.Parser.parse(Parser.java:556)
+	at org.h2.command.Parser.prepareCommand(Parser.java:484)
+	at org.h2.engine.SessionLocal.prepareLocal(SessionLocal.java:645)
+	at org.h2.engine.SessionLocal.prepareCommand(SessionLocal.java:561)
+	at org.h2.jdbc.JdbcConnection.prepareCommand(JdbcConnection.java:1164)
+	at org.h2.jdbc.JdbcPreparedStatement.<init>(JdbcPreparedStatement.java:93)
+	at org.h2.jdbc.JdbcConnection.prepareStatement(JdbcConnection.java:315)
+	at com.iimmersao.springmimic.database.H2DatabaseClient.findAll(H2DatabaseClient.java:220)
+	... 9 common frames omitted
+2025-07-05 14:32:35 ERROR [NanoHttpd Request Processor (#1)] c.i.s.core.ExceptionHandler - Internal server error: 
+java.lang.RuntimeException: Failed to fetch paginated results
+	at com.iimmersao.springmimic.database.H2DatabaseClient.findAll(H2DatabaseClient.java:235)
+	at com.iimmersao.springmimic.services.UserService.findAll(UserService.java:79)
+	at com.iimmersao.springmimic.controllers.UserController.getUsers(UserController.java:83)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at com.iimmersao.springmimic.routing.RouteHandler.handle(RouteHandler.java:239)
+	at com.iimmersao.springmimic.server.WebServer.serve(WebServer.java:65)
+	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:945)
+	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:192)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "MYSQLUSER" not found (this database is empty); SQL statement:
+SELECT * FROM mysqluser WHERE username = ? ORDER BY username DESC LIMIT ? OFFSET ? [42104-232]
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:514)
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
+	at org.h2.message.DbException.get(DbException.java:223)
+	at org.h2.message.DbException.get(DbException.java:199)
+	at org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7932)
+	at org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7916)
+	at org.h2.command.Parser.readTableOrView(Parser.java:7895)
+	at org.h2.command.Parser.readTablePrimary(Parser.java:1769)
+	at org.h2.command.Parser.readTableReference(Parser.java:2249)
+	at org.h2.command.Parser.parseSelectFromPart(Parser.java:2702)
+	at org.h2.command.Parser.parseSelect(Parser.java:2810)
+	at org.h2.command.Parser.parseQueryPrimary(Parser.java:2692)
+	at org.h2.command.Parser.parseQueryTerm(Parser.java:2547)
+	at org.h2.command.Parser.parseQueryExpressionBody(Parser.java:2526)
+	at org.h2.command.Parser.parseQueryExpressionBodyAndEndOfQuery(Parser.java:2519)
+	at org.h2.command.Parser.parseQueryExpression(Parser.java:2512)
+	at org.h2.command.Parser.parseQuery(Parser.java:2479)
+	at org.h2.command.Parser.parsePrepared(Parser.java:610)
+	at org.h2.command.Parser.parse(Parser.java:581)
+	at org.h2.command.Parser.parse(Parser.java:556)
+	at org.h2.command.Parser.prepareCommand(Parser.java:484)
+	at org.h2.engine.SessionLocal.prepareLocal(SessionLocal.java:645)
+	at org.h2.engine.SessionLocal.prepareCommand(SessionLocal.java:561)
+	at org.h2.jdbc.JdbcConnection.prepareCommand(JdbcConnection.java:1164)
+	at org.h2.jdbc.JdbcPreparedStatement.<init>(JdbcPreparedStatement.java:93)
+	at org.h2.jdbc.JdbcConnection.prepareStatement(JdbcConnection.java:315)
+	at com.iimmersao.springmimic.database.H2DatabaseClient.findAll(H2DatabaseClient.java:220)
+	... 9 common frames omitted
+2025-07-05 14:34:10 INFO  [main] com.iimmersao.springmimic.Main - Application started with database: h2
+2025-07-05 14:34:10 INFO  [main] com.iimmersao.springmimic.Main - Environment: development
+2025-07-05 14:35:38 ERROR [NanoHttpd Request Processor (#1)] c.i.s.core.ExceptionHandler - Internal server error: 
+java.lang.RuntimeException: Failed to fetch paginated results
+	at com.iimmersao.springmimic.database.H2DatabaseClient.findAll(H2DatabaseClient.java:235)
+	at com.iimmersao.springmimic.services.UserService.findAll(UserService.java:79)
+	at com.iimmersao.springmimic.controllers.UserController.getUsers(UserController.java:83)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at com.iimmersao.springmimic.routing.RouteHandler.handle(RouteHandler.java:239)
+	at com.iimmersao.springmimic.server.WebServer.serve(WebServer.java:65)
+	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:945)
+	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:192)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "MYSQLUSER" not found (this database is empty); SQL statement:
+SELECT * FROM mysqluser WHERE username = ? ORDER BY username DESC LIMIT ? OFFSET ? [42104-232]
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:514)
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
+	at org.h2.message.DbException.get(DbException.java:223)
+	at org.h2.message.DbException.get(DbException.java:199)
+	at org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7932)
+	at org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7916)
+	at org.h2.command.Parser.readTableOrView(Parser.java:7895)
+	at org.h2.command.Parser.readTablePrimary(Parser.java:1769)
+	at org.h2.command.Parser.readTableReference(Parser.java:2249)
+	at org.h2.command.Parser.parseSelectFromPart(Parser.java:2702)
+	at org.h2.command.Parser.parseSelect(Parser.java:2810)
+	at org.h2.command.Parser.parseQueryPrimary(Parser.java:2692)
+	at org.h2.command.Parser.parseQueryTerm(Parser.java:2547)
+	at org.h2.command.Parser.parseQueryExpressionBody(Parser.java:2526)
+	at org.h2.command.Parser.parseQueryExpressionBodyAndEndOfQuery(Parser.java:2519)
+	at org.h2.command.Parser.parseQueryExpression(Parser.java:2512)
+	at org.h2.command.Parser.parseQuery(Parser.java:2479)
+	at org.h2.command.Parser.parsePrepared(Parser.java:610)
+	at org.h2.command.Parser.parse(Parser.java:581)
+	at org.h2.command.Parser.parse(Parser.java:556)
+	at org.h2.command.Parser.prepareCommand(Parser.java:484)
+	at org.h2.engine.SessionLocal.prepareLocal(SessionLocal.java:645)
+	at org.h2.engine.SessionLocal.prepareCommand(SessionLocal.java:561)
+	at org.h2.jdbc.JdbcConnection.prepareCommand(JdbcConnection.java:1164)
+	at org.h2.jdbc.JdbcPreparedStatement.<init>(JdbcPreparedStatement.java:93)
+	at org.h2.jdbc.JdbcConnection.prepareStatement(JdbcConnection.java:315)
+	at com.iimmersao.springmimic.database.H2DatabaseClient.findAll(H2DatabaseClient.java:220)
+	... 9 common frames omitted
+2025-07-05 14:37:43 ERROR [NanoHttpd Request Processor (#1)] c.i.s.core.ExceptionHandler - Internal server error: 
+java.lang.RuntimeException: Failed to fetch paginated results
+	at com.iimmersao.springmimic.database.H2DatabaseClient.findAll(H2DatabaseClient.java:235)
+	at com.iimmersao.springmimic.services.UserService.findAll(UserService.java:79)
+	at com.iimmersao.springmimic.controllers.UserController.getUsers(UserController.java:83)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at com.iimmersao.springmimic.routing.RouteHandler.handle(RouteHandler.java:239)
+	at com.iimmersao.springmimic.server.WebServer.serve(WebServer.java:65)
+	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:945)
+	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:192)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "MYSQLUSER" not found (this database is empty); SQL statement:
+SELECT * FROM mysqluser WHERE username = ? ORDER BY username DESC LIMIT ? OFFSET ? [42104-232]
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:514)
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
+	at org.h2.message.DbException.get(DbException.java:223)
+	at org.h2.message.DbException.get(DbException.java:199)
+	at org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7932)
+	at org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7916)
+	at org.h2.command.Parser.readTableOrView(Parser.java:7895)
+	at org.h2.command.Parser.readTablePrimary(Parser.java:1769)
+	at org.h2.command.Parser.readTableReference(Parser.java:2249)
+	at org.h2.command.Parser.parseSelectFromPart(Parser.java:2702)
+	at org.h2.command.Parser.parseSelect(Parser.java:2810)
+	at org.h2.command.Parser.parseQueryPrimary(Parser.java:2692)
+	at org.h2.command.Parser.parseQueryTerm(Parser.java:2547)
+	at org.h2.command.Parser.parseQueryExpressionBody(Parser.java:2526)
+	at org.h2.command.Parser.parseQueryExpressionBodyAndEndOfQuery(Parser.java:2519)
+	at org.h2.command.Parser.parseQueryExpression(Parser.java:2512)
+	at org.h2.command.Parser.parseQuery(Parser.java:2479)
+	at org.h2.command.Parser.parsePrepared(Parser.java:610)
+	at org.h2.command.Parser.parse(Parser.java:581)
+	at org.h2.command.Parser.parse(Parser.java:556)
+	at org.h2.command.Parser.prepareCommand(Parser.java:484)
+	at org.h2.engine.SessionLocal.prepareLocal(SessionLocal.java:645)
+	at org.h2.engine.SessionLocal.prepareCommand(SessionLocal.java:561)
+	at org.h2.jdbc.JdbcConnection.prepareCommand(JdbcConnection.java:1164)
+	at org.h2.jdbc.JdbcPreparedStatement.<init>(JdbcPreparedStatement.java:93)
+	at org.h2.jdbc.JdbcConnection.prepareStatement(JdbcConnection.java:315)
+	at com.iimmersao.springmimic.database.H2DatabaseClient.findAll(H2DatabaseClient.java:220)
+	... 9 common frames omitted
+2025-07-05 14:47:08 INFO  [main] com.iimmersao.springmimic.Main - Application started with database: h2
+2025-07-05 14:47:08 INFO  [main] com.iimmersao.springmimic.Main - Environment: development
+2025-07-05 14:47:13 ERROR [NanoHttpd Request Processor (#1)] c.i.s.core.ExceptionHandler - Internal server error: 
+java.lang.RuntimeException: Failed to fetch paginated results
+	at com.iimmersao.springmimic.database.H2DatabaseClient.findAll(H2DatabaseClient.java:255)
+	at com.iimmersao.springmimic.services.UserService.findAll(UserService.java:76)
+	at com.iimmersao.springmimic.controllers.UserController.getUsers(UserController.java:83)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at com.iimmersao.springmimic.routing.RouteHandler.handle(RouteHandler.java:239)
+	at com.iimmersao.springmimic.server.WebServer.serve(WebServer.java:65)
+	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:945)
+	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:192)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "H2USER" not found; SQL statement:
+SELECT * FROM h2user WHERE username = ? ORDER BY username DESC LIMIT ? OFFSET ? [42102-232]
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:514)
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
+	at org.h2.message.DbException.get(DbException.java:223)
+	at org.h2.message.DbException.get(DbException.java:199)
+	at org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7945)
+	at org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7916)
+	at org.h2.command.Parser.readTableOrView(Parser.java:7895)
+	at org.h2.command.Parser.readTablePrimary(Parser.java:1769)
+	at org.h2.command.Parser.readTableReference(Parser.java:2249)
+	at org.h2.command.Parser.parseSelectFromPart(Parser.java:2702)
+	at org.h2.command.Parser.parseSelect(Parser.java:2810)
+	at org.h2.command.Parser.parseQueryPrimary(Parser.java:2692)
+	at org.h2.command.Parser.parseQueryTerm(Parser.java:2547)
+	at org.h2.command.Parser.parseQueryExpressionBody(Parser.java:2526)
+	at org.h2.command.Parser.parseQueryExpressionBodyAndEndOfQuery(Parser.java:2519)
+	at org.h2.command.Parser.parseQueryExpression(Parser.java:2512)
+	at org.h2.command.Parser.parseQuery(Parser.java:2479)
+	at org.h2.command.Parser.parsePrepared(Parser.java:610)
+	at org.h2.command.Parser.parse(Parser.java:581)
+	at org.h2.command.Parser.parse(Parser.java:556)
+	at org.h2.command.Parser.prepareCommand(Parser.java:484)
+	at org.h2.engine.SessionLocal.prepareLocal(SessionLocal.java:645)
+	at org.h2.engine.SessionLocal.prepareCommand(SessionLocal.java:561)
+	at org.h2.jdbc.JdbcConnection.prepareCommand(JdbcConnection.java:1164)
+	at org.h2.jdbc.JdbcPreparedStatement.<init>(JdbcPreparedStatement.java:93)
+	at org.h2.jdbc.JdbcConnection.prepareStatement(JdbcConnection.java:315)
+	at com.iimmersao.springmimic.database.H2DatabaseClient.findAll(H2DatabaseClient.java:240)
+	... 9 common frames omitted
+2025-07-05 14:47:27 INFO  [main] com.iimmersao.springmimic.Main - Application started with database: h2
+2025-07-05 14:47:27 INFO  [main] com.iimmersao.springmimic.Main - Environment: development
+2025-07-05 14:48:05 ERROR [NanoHttpd Request Processor (#1)] c.i.s.core.ExceptionHandler - Internal server error: 
+java.lang.RuntimeException: Failed to fetch paginated results
+	at com.iimmersao.springmimic.database.H2DatabaseClient.findAll(H2DatabaseClient.java:255)
+	at com.iimmersao.springmimic.services.UserService.findAll(UserService.java:76)
+	at com.iimmersao.springmimic.controllers.UserController.getUsers(UserController.java:83)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at com.iimmersao.springmimic.routing.RouteHandler.handle(RouteHandler.java:239)
+	at com.iimmersao.springmimic.server.WebServer.serve(WebServer.java:65)
+	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:945)
+	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:192)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: org.h2.jdbc.JdbcSQLSyntaxErrorException: Table "H2USER" not found; SQL statement:
+SELECT * FROM h2user WHERE username = ? ORDER BY username DESC LIMIT ? OFFSET ? [42102-232]
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:514)
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:489)
+	at org.h2.message.DbException.get(DbException.java:223)
+	at org.h2.message.DbException.get(DbException.java:199)
+	at org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7945)
+	at org.h2.command.Parser.getTableOrViewNotFoundDbException(Parser.java:7916)
+	at org.h2.command.Parser.readTableOrView(Parser.java:7895)
+	at org.h2.command.Parser.readTablePrimary(Parser.java:1769)
+	at org.h2.command.Parser.readTableReference(Parser.java:2249)
+	at org.h2.command.Parser.parseSelectFromPart(Parser.java:2702)
+	at org.h2.command.Parser.parseSelect(Parser.java:2810)
+	at org.h2.command.Parser.parseQueryPrimary(Parser.java:2692)
+	at org.h2.command.Parser.parseQueryTerm(Parser.java:2547)
+	at org.h2.command.Parser.parseQueryExpressionBody(Parser.java:2526)
+	at org.h2.command.Parser.parseQueryExpressionBodyAndEndOfQuery(Parser.java:2519)
+	at org.h2.command.Parser.parseQueryExpression(Parser.java:2512)
+	at org.h2.command.Parser.parseQuery(Parser.java:2479)
+	at org.h2.command.Parser.parsePrepared(Parser.java:610)
+	at org.h2.command.Parser.parse(Parser.java:581)
+	at org.h2.command.Parser.parse(Parser.java:556)
+	at org.h2.command.Parser.prepareCommand(Parser.java:484)
+	at org.h2.engine.SessionLocal.prepareLocal(SessionLocal.java:645)
+	at org.h2.engine.SessionLocal.prepareCommand(SessionLocal.java:561)
+	at org.h2.jdbc.JdbcConnection.prepareCommand(JdbcConnection.java:1164)
+	at org.h2.jdbc.JdbcPreparedStatement.<init>(JdbcPreparedStatement.java:93)
+	at org.h2.jdbc.JdbcConnection.prepareStatement(JdbcConnection.java:315)
+	at com.iimmersao.springmimic.database.H2DatabaseClient.findAll(H2DatabaseClient.java:240)
+	... 9 common frames omitted
+2025-07-05 14:50:11 INFO  [main] com.iimmersao.springmimic.Main - Application started with database: h2
+2025-07-05 14:50:11 INFO  [main] com.iimmersao.springmimic.Main - Environment: development
+2025-07-05 14:50:35 WARN  [NanoHttpd Request Processor (#3)] c.i.s.core.ExceptionHandler - Client error: Unsupported dbType
+2025-07-05 14:51:37 WARN  [NanoHttpd Request Processor (#4)] c.i.s.core.ExceptionHandler - Client error: Unsupported dbType
+2025-07-05 14:55:08 INFO  [main] com.iimmersao.springmimic.Main - Application started with database: h2
+2025-07-05 14:55:08 INFO  [main] com.iimmersao.springmimic.Main - Environment: development
