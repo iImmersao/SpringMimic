@@ -15,6 +15,11 @@ public class Router {
     private static final Pattern PATH_VARIABLE_PATTERN = Pattern.compile("\\{([^/]+)}");
 
     private final List<RouteEntry> routes = new ArrayList<>();
+    private final RouteHandlerFactory handlerFactory;
+
+    public Router(RouteHandlerFactory handlerFactory) {
+        this.handlerFactory = handlerFactory;
+    }
 
     private Pattern pathToRegex(String path) {
         String regex = PATH_VARIABLE_PATTERN.matcher(path).replaceAll("([^/]+)");
@@ -50,7 +55,8 @@ public class Router {
 
                     if (httpMethod != null && path != null) {
                         Pattern regexPattern = pathToRegex(path);
-                        RouteHandler handler = new RouteHandler(httpMethod, path, controller, method, params);
+                        //RouteHandler handler = new RouteHandler(httpMethod, path, controller, method, params);
+                        RouteHandler handler = handlerFactory.create(httpMethod, path, controller, method, params);
                         routes.add(new RouteEntry(httpMethod, path, regexPattern, handler));
                     }
                 }

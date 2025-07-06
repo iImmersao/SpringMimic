@@ -1,13 +1,15 @@
 package com.iimmersao.springmimic.routing;
 
-import com.iimmersao.springmimic.annotations.PathVariable;
-import com.iimmersao.springmimic.annotations.Produces;
-import com.iimmersao.springmimic.annotations.RequestBody;
-import com.iimmersao.springmimic.annotations.RequestParam;
+import com.iimmersao.springmimic.annotations.*;
+import com.iimmersao.springmimic.core.ApplicationContext;
+import com.iimmersao.springmimic.exceptions.UnauthorizedException;
+import com.iimmersao.springmimic.security.Authenticator;
+import com.iimmersao.springmimic.security.UserDetails;
 import com.iimmersao.springmimic.core.ExceptionHandler;
 import com.iimmersao.springmimic.core.util.PathUtils;
 import com.iimmersao.springmimic.openapi.MethodParameter;
 import com.iimmersao.springmimic.web.PageRequest;
+import com.iimmersao.springmimic.web.ResponseFactory;
 import fi.iki.elonen.NanoHTTPD;
 import fi.iki.elonen.NanoHTTPD.IHTTPSession;
 import fi.iki.elonen.NanoHTTPD.Response;
@@ -28,6 +30,7 @@ public class RouteHandler {
     private final Method method;
     private final Parameter[] parameters;
     private final List<MethodParameter> params;
+    private final ApplicationContext context;
 
     private final String routePath;
     private final Pattern pattern;                 // Compiled regex for matching paths
@@ -35,13 +38,15 @@ public class RouteHandler {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public RouteHandler(String httpMethod, String routePath, Object controllerInstance, Method method, List<MethodParameter> params) {
+    public RouteHandler(String httpMethod, String routePath, Object controllerInstance, Method method,
+                        List<MethodParameter> params, ApplicationContext context) {
         this.httpMethod = httpMethod;
         this.controllerInstance = controllerInstance;
         this.method = method;
         this.parameters = method.getParameters();
         this.routePath = routePath;
         this.params = params;
+        this.context = context;
 
         this.pathVariableNames = new ArrayList<>();
         this.pattern = compilePattern(routePath, pathVariableNames);
@@ -145,13 +150,53 @@ public class RouteHandler {
         return null;
     }
 
-    public Response handle(IHTTPSession session, Matcher pathMatcher) {
+    public Response handle(IHTTPSession session, Matcher matcher) {
         try {
+            // --- 1. Check if authentication is required ---
+            boolean requiresAuth = method.isAnnotationPresent(Authenticated.class);
+            UserDetails user = null;
+
+            if (requiresAuth) {
+                // Get Authorization header
+                String authHeader = session.getHeaders().get("authorization");
+                if (authHeader == null || !authHeader.startsWith("Basic ")) {
+                    return ResponseFactory.unauthorized("Missing or invalid Authorization header");
+                }
+
+                // Decode credentials
+                String base64Credentials = authHeader.substring("Basic ".length()).trim();
+                String decoded = new String(Base64.getDecoder().decode(base64Credentials));
+                String[] parts = decoded.split(":", 2);
+                if (parts.length != 2) {
+                    return ResponseFactory.unauthorized("Invalid Authorization header format");
+                }
+
+                String username = parts[0];
+                String password = parts[1];
+
+                // Authenticate user
+                Authenticator authenticator = context.getBean(Authenticator.class);
+                user = authenticator.authenticate(username, password);  // Throws UnauthorizedException if invalid
+
+                // --- 2. Check roles if @RolesAllowed is present ---
+                if (method.isAnnotationPresent(RolesAllowed.class)) {
+                    RolesAllowed rolesAllowed = method.getAnnotation(RolesAllowed.class);
+                    List<String> requiredRoles = Arrays.asList(rolesAllowed.value());
+
+                    boolean hasRole = requiredRoles.stream().anyMatch(user.getRoles()::contains);
+                    if (!hasRole) {
+                        return ResponseFactory.forbidden("Forbidden - User lacks required role(s)");
+                    }
+                }
+            }
+
+
+        //try {
             Parameter[] parameters = method.getParameters();
             Object[] args = new Object[parameters.length];
 
             // Extract path variables
-            Map<String, String> pathVariables = extractPathVariables(pathMatcher);
+            Map<String, String> pathVariables = extractPathVariables(matcher);
 
             // Extract query params (as Map<String, List<String>>)
             String queryString = session.getQueryParameterString();

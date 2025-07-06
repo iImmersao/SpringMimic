@@ -1,9 +1,17 @@
 package com.iimmersao.springmimic.routing;
 
 import com.iimmersao.springmimic.annotations.GetMapping;
+import com.iimmersao.springmimic.client.RestClient;
+import com.iimmersao.springmimic.core.ApplicationContext;
+import com.iimmersao.springmimic.core.ConfigLoader;
+import com.iimmersao.springmimic.database.DatabaseClient;
+import com.iimmersao.springmimic.database.H2DatabaseClient;
+import com.iimmersao.springmimic.database.MongoDatabaseClient;
+import com.iimmersao.springmimic.database.MySqlDatabaseClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -25,8 +33,29 @@ public class RouterTest {
     private Router router;
 
     @BeforeEach
-    void setUp() {
-        router = new Router();
+    void setUp() throws IOException {
+        ConfigLoader config = new ConfigLoader("application.properties");
+        String dbType = config.get("db.type", "mysql").toLowerCase();
+
+        // Create the appropriate DatabaseClient
+        DatabaseClient databaseClient;
+        switch (dbType) {
+            case "mongo", "mongodb" -> databaseClient = new MongoDatabaseClient(config);
+            case "mysql" -> databaseClient = new MySqlDatabaseClient(config);
+            case "h2" -> databaseClient = new H2DatabaseClient(config);
+            default -> throw new IllegalArgumentException("Unsupported database type: " + dbType);
+        }
+        ApplicationContext context = new ApplicationContext("com.iimmersao.springmimic");
+        context.registerBean(ApplicationContext.class, context); // Move to constructor?
+        Port port = new Port(config.getInt("server.port", 8080));
+        context.registerBean(Port.class, port);
+        context.registerBean(DatabaseClient.class, databaseClient);
+        context.registerBean(ConfigLoader.class, config);
+        RestClient restClient = new RestClient();
+        context.registerBean(RestClient.class, restClient);
+        context.initialize();
+        router = context.getBean(Router.class);
+        context.injectDependencies();
         Set<Object> controllers = Set.of(new TestController());
         router.registerControllers(controllers);
     }

@@ -2,6 +2,8 @@ package com.iimmersao.springmimic.core;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iimmersao.springmimic.exceptions.RouteNotFoundException;
+import com.iimmersao.springmimic.exceptions.UnauthorizedException;
+import com.iimmersao.springmimic.web.ResponseFactory;
 import fi.iki.elonen.NanoHTTPD;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +20,10 @@ public class ExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(ExceptionHandler.class);
 
     public static NanoHTTPD.Response handle(Exception e) {
+
+        if (e instanceof UnauthorizedException) {
+            return ResponseFactory.unauthorized("Unauthorized: " + e.getMessage());
+        }
 
         if (e instanceof IllegalArgumentException) {
             log.warn("Client error: {}", e.getMessage());

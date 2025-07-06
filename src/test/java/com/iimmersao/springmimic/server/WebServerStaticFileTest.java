@@ -49,9 +49,6 @@ class WebServerStaticFileTest {
         };
 
         ApplicationContext context = new ApplicationContext("com.iimmersao.springmimic");
-        Router router = new Router();
-        router.registerControllers(context.getControllers());
-        context.registerBean(Router.class, router);
         context.registerBean(ConfigLoader.class, config);
         // Create the appropriate DatabaseClient
         DatabaseClient databaseClient;
@@ -62,12 +59,15 @@ class WebServerStaticFileTest {
             default -> throw new IllegalArgumentException("Unsupported database type: " + dbType);
         }
         context.registerBean(DatabaseClient.class, databaseClient);
+        context.registerBean(ApplicationContext.class, context); // Move to constructor?
         Port portToUse = new Port(config.getInt("server.port", port));
         context.registerBean(Port.class, portToUse);
         RestClient restClient = new RestClient();
         context.registerBean(RestClient.class, restClient);
         context.initialize();
 
+        Router router = context.getBean(Router.class);
+        router.registerControllers(context.getControllers());
 
         context.injectDependencies();
 

@@ -9,6 +9,8 @@ import com.iimmersao.springmimic.database.H2DatabaseClient;
 import com.iimmersao.springmimic.database.MongoDatabaseClient;
 import com.iimmersao.springmimic.database.MySqlDatabaseClient;
 import com.iimmersao.springmimic.routing.Port;
+import com.iimmersao.springmimic.security.Authenticator;
+import com.iimmersao.springmimic.security.SecurityContext;
 import com.iimmersao.springmimic.server.WebServer;
 import com.iimmersao.springmimic.routing.Router;
 import org.slf4j.Logger;
@@ -54,9 +56,11 @@ public class Main {
             context.registerBean(Port.class, port);
 
             context.initialize();
-            Router router = new Router();
+//            Router router = new Router();
+//            router.registerControllers(context.getControllers());
+//            context.registerBean(Router.class, router);
+            Router router = context.getBean(Router.class);
             router.registerControllers(context.getControllers());
-            context.registerBean(Router.class, router);
             context.injectDependencies();
 
             // Start the web server

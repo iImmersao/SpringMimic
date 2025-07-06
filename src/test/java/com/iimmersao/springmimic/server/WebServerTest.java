@@ -36,10 +36,7 @@ class WebServerTest {
         context.initialize();
         context.injectDependencies();
 
-        Router router = new Router();
-        router.registerControllers(context.getControllers());
         ApplicationContext realContext = new ApplicationContext("com.iimmersao.springmimic");
-        realContext.registerBean(Router.class, router);
         ConfigLoader config = new ConfigLoader("application.properties");
         realContext.registerBean(ConfigLoader.class, config);
         // Create the appropriate DatabaseClient
@@ -51,11 +48,14 @@ class WebServerTest {
             default -> throw new IllegalArgumentException("Unsupported database type: " + dbType);
         }
         realContext.registerBean(DatabaseClient.class, databaseClient);
+        realContext.registerBean(ApplicationContext.class, context); // Move to constructor?
         Port portToUse = new Port(config.getInt("server.port", port));
         realContext.registerBean(Port.class, portToUse);
         RestClient restClient = new RestClient();
         realContext.registerBean(RestClient.class, restClient);
         realContext.initialize();
+        Router router = realContext.getBean(Router.class);
+        router.registerControllers(context.getControllers());
         realContext.injectDependencies();
         //server = new WebServer(portToUse, router);
         server = realContext.getBean(WebServer.class);
