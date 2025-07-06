@@ -83,6 +83,7 @@ public class UserService {
     private Object convertId(String id) {
         return switch (getDbType()) {
             case "mysql" -> Integer.parseInt(id);
+            case "h2" -> Integer.parseInt(id);
             case "mongodb" -> id; // remains a String
             default -> throw new IllegalStateException("Unsupported db.type: " + getDbType());
         };
