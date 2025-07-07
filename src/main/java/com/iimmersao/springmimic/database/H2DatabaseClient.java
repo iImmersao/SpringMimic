@@ -213,6 +213,16 @@ public class H2DatabaseClient implements DatabaseClient {
 
     @Override
     public <T> List<T> findAll(Class<T> entityType, PageRequest pageRequest) {
+        try {
+            validateFieldNames(entityType, pageRequest.getFilters());
+            // continue with building query and execution
+        } catch (IllegalArgumentException ex) {
+            // Optional: log and return empty list instead of failing
+            return Collections.emptyList();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to fetch paginated results", e);
+        }
+
         String tableName = getTableName(entityType);
         List<String> whereClauses = new ArrayList<>();
         List<Object> parameters = new ArrayList<>();
@@ -327,5 +337,17 @@ public class H2DatabaseClient implements DatabaseClient {
             field.set(instance, value);
         }
         return instance;
+    }
+
+    private void validateFieldNames(Class<?> entityType, Map<String, Object> filters) {
+        Set<String> validFields = Arrays.stream(entityType.getDeclaredFields())
+                .map(Field::getName)
+                .collect(Collectors.toSet());
+
+        for (String field : filters.keySet()) {
+            if (!validFields.contains(field)) {
+                throw new IllegalArgumentException("Unknown field in filter: " + field);
+            }
+        }
     }
 }

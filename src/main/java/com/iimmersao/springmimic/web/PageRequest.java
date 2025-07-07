@@ -65,11 +65,14 @@ public class PageRequest {
     }
 
     public Map<String, Object> getFilters() {
+        if (filters == null) {
+            filters = new HashMap<>();
+        }
         return filters;
     }
 
     public void setFilters(Map<String, Object> filters) {
-        this.filters = filters;
+        this.filters = (filters != null) ? filters : new HashMap<>();
     }
 
     public void addLikeField(String fieldName) {

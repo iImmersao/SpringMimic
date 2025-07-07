@@ -8,6 +8,7 @@ import com.iimmersao.springmimic.web.PageRequest;
 import java.lang.reflect.Field;
 import java.sql.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Bean
 public class MySqlDatabaseClient implements DatabaseClient {
@@ -201,8 +202,13 @@ public class MySqlDatabaseClient implements DatabaseClient {
     @Override
     public <T> void deleteById(Class<T> clazz, Object id) {
         try {
+            Field idField = getIdField(clazz); // assume this uses reflection
+            Class<?> expectedType = idField.getType();
+            if (!expectedType.isInstance(id)) {
+                throw new IllegalArgumentException("Invalid ID type: expected " + expectedType.getSimpleName());
+            }
+
             String table = getTableName(clazz);
-            Field idField = getIdField(clazz);
             String idColumn = getColumnName(idField);
 
             String sql = "DELETE FROM " + table + " WHERE " + idColumn + " = ?";
@@ -230,6 +236,16 @@ public class MySqlDatabaseClient implements DatabaseClient {
 
     @Override
     public <T> List<T> findAll(Class<T> entityType, PageRequest pageRequest) {
+        try {
+            validateFieldNames(entityType, pageRequest.getFilters());
+            // continue with building query and execution
+        } catch (IllegalArgumentException ex) {
+            // Optional: log and return empty list instead of failing
+            return Collections.emptyList();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to fetch paginated results", e);
+        }
+
         String tableName = getTableName(entityType);
         List<String> whereClauses = new ArrayList<>();
         List<Object> parameters = new ArrayList<>();
@@ -399,4 +415,15 @@ public class MySqlDatabaseClient implements DatabaseClient {
         return DriverManager.getConnection(url, username, password);
     }
 
+    private void validateFieldNames(Class<?> entityType, Map<String, Object> filters) {
+        Set<String> validFields = Arrays.stream(entityType.getDeclaredFields())
+                .map(Field::getName)
+                .collect(Collectors.toSet());
+
+        for (String field : filters.keySet()) {
+            if (!validFields.contains(field)) {
+                throw new IllegalArgumentException("Unknown field in filter: " + field);
+            }
+        }
+    }
 }
