@@ -1,17 +1,11 @@
 package com.iimmersao.springmimic.database;
 
 import com.iimmersao.springmimic.core.ConfigLoader;
-import com.iimmersao.springmimic.database.DatabaseClient;
-import com.iimmersao.springmimic.database.MySqlDatabaseClient;
 import com.iimmersao.springmimic.annotations.*;
 
 import com.iimmersao.springmimic.web.PageRequest;
 import org.junit.jupiter.api.*;
 
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.Statement;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,8 +18,6 @@ import static org.junit.jupiter.api.Assertions.*;
 public class MySqlDatabaseClientTest {
 
     private DatabaseClient dbClient;
-
-    private ConfigLoader configLoader;
 
     @Entity
     @Table(name = "users")
@@ -49,26 +41,7 @@ public class MySqlDatabaseClientTest {
 
     @BeforeAll
     void init() throws Exception {
-        configLoader = new ConfigLoader("application.properties"); // or your test config file path
-        /*
-        String url = "jdbc:mysql://localhost:3306/sakila";
-        String user = "root";
-        String pass = "Basement99!";
-
-        // Drop and recreate table for clean testing
-        try (Connection conn = DriverManager.getConnection(url, user, pass);
-             Statement stmt = conn.createStatement()) {
-
-            stmt.executeUpdate("DROP TABLE IF EXISTS users");
-            stmt.executeUpdate("""
-                CREATE TABLE users (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    username VARCHAR(255)
-                )
-            """);
-        }
-         */
-
+        ConfigLoader configLoader = new ConfigLoader("application.properties"); // or your test config file path
         dbClient = new MySqlDatabaseClient(configLoader);
     }
 
@@ -192,7 +165,7 @@ public class MySqlDatabaseClientTest {
         dbClient.save(otherUser);
 
         PageRequest pageRequest = new PageRequest();
-        Map<String, String> filters = new HashMap<>();
+        Map<String, Object> filters = new HashMap<>();
         filters.put("username", "filterme");
         pageRequest.setFilters(filters);
 
@@ -201,6 +174,37 @@ public class MySqlDatabaseClientTest {
 
         // Assert
         assertEquals(1, results.size());
-        assertEquals("filterme", ((User) results.get(0)).username);
+        assertEquals("filterme", ((User) results.getFirst()).username);
+    }
+
+    @Test
+    void shouldFindUsersByUsernameContains() throws Exception {
+        // Arrange
+        User user1 = new User();
+        user1.username = "alice_smith";
+        user1.email = "alice@example.com";
+        User user2 = new User();
+        user2.username = "bob_jones";
+        user2.email = "bob@example.com";
+        User user3 = new User();
+        user3.username = "charlie";
+        user3.email = "charlie@example.com";
+
+        dbClient.save(user1);
+        dbClient.save(user2);
+        dbClient.save(user3);
+
+        PageRequest request = new PageRequest();
+        Map<String, Object> filters = new HashMap<>();
+        filters.put("username", "bob");
+        request.setFilters(filters);
+        request.addLikeField("username");
+
+        // Act
+        List<User> result = dbClient.findAll(User.class, request);
+
+        // Assert
+        assertEquals(1, result.size());
+        assertEquals("bob_jones", result.getFirst().username);
     }
 }

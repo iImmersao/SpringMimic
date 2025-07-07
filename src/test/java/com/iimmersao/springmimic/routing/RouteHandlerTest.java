@@ -30,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 public class RouteHandlerTest {
-    static private ApplicationContext context;
     static private RouteHandlerFactory routeHandlerFactory;
 
     public static class TestController {
@@ -106,14 +105,14 @@ public class RouteHandlerTest {
     }
 
     private Matcher matchUri(String routeTemplate, String uri) {
-        String regex = routeTemplate.replaceAll("\\{[^/]+?\\}", "([^/]+)");
+        String regex = routeTemplate.replaceAll("\\{[^/]+?}", "([^/]+)");
         Pattern pattern = Pattern.compile("^" + regex + "$", Pattern.CASE_INSENSITIVE);
         return pattern.matcher(uri);
     }
 
     @BeforeAll
     static void setup() {
-        context = new ApplicationContext("com.iimmersao.springmimic");
+        ApplicationContext context = new ApplicationContext("com.iimmersao.springmimic");
         routeHandlerFactory = new RouteHandlerFactory(context);
     }
 

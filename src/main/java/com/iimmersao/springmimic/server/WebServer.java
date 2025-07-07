@@ -1,6 +1,5 @@
 package com.iimmersao.springmimic.server;
 
-import com.iimmersao.springmimic.Main;
 import com.iimmersao.springmimic.annotations.Component;
 import com.iimmersao.springmimic.annotations.Inject;
 import com.iimmersao.springmimic.core.ConfigLoader;

@@ -17,6 +17,6 @@ public class RouteHandlerFactory {
     }
 
     public RouteHandler create(String method, String path, Object handlerInstance, Method handlerMethod, List<MethodParameter> parameters) {
-        return new RouteHandler(method, path, handlerInstance, handlerMethod, parameters, context);
+        return new RouteHandler(path, handlerInstance, handlerMethod, parameters, context);
     }
 }

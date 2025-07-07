@@ -66,11 +66,11 @@ public class UserController {
         Set<String> knownKeys = Set.of("page", "size", "sortBy");
 
         // Filter out paging/sorting from filters
-        Map<String, String> filters = rawQueryParams.entrySet().stream()
+        Map<String, Object> filters = rawQueryParams.entrySet().stream()
                 .filter(entry -> !knownKeys.contains(entry.getKey()))
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
-                        e -> e.getValue().get(0)) // use first value
+                        e -> e.getValue().getFirst()) // use first value
                 );
 
         PageRequest pageRequest = new PageRequest(

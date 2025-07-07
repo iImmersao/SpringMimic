@@ -1,11 +1,6 @@
 package com.iimmersao.springmimic.testcomponents;
 
 import com.iimmersao.springmimic.annotations.*;
-import com.iimmersao.springmimic.controllers.UserController;
-import com.iimmersao.springmimic.model.User;
-import com.iimmersao.springmimic.web.PageRequest;
-
-import java.util.List;
 
 @Controller
 public class TestController {

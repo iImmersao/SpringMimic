@@ -74,7 +74,7 @@ public class H2DatabaseClient implements DatabaseClient {
         Class<?> clazz = entity.getClass();
         List<Field> fields = Arrays.stream(clazz.getDeclaredFields())
                 .filter(f -> !"id".equalsIgnoreCase(f.getName()))
-                .collect(Collectors.toList());
+                .toList();
 
         String columns = fields.stream()
                 .map(Field::getName)
@@ -156,7 +156,7 @@ public class H2DatabaseClient implements DatabaseClient {
         Field idField = getIdField(clazz);
         List<Field> fields = Arrays.stream(clazz.getDeclaredFields())
                 .filter(f -> !"id".equalsIgnoreCase(f.getName()))
-                .collect(Collectors.toList());
+                .toList();
 
         String updates = fields.stream()
                 .map(f -> f.getName() + " = ?")
@@ -213,21 +213,32 @@ public class H2DatabaseClient implements DatabaseClient {
 
     @Override
     public <T> List<T> findAll(Class<T> entityType, PageRequest pageRequest) {
-        String sql = "SELECT * FROM " + getTableName(entityType);
-
-        String whereClause = "";
+        String tableName = getTableName(entityType);
+        List<String> whereClauses = new ArrayList<>();
         List<Object> parameters = new ArrayList<>();
 
-        if (pageRequest.getFilters() != null && !pageRequest.getFilters().isEmpty()) {
-            List<String> filters = new ArrayList<>();
-            for (Map.Entry<String, String> entry : pageRequest.getFilters().entrySet()) {
-                filters.add(entry.getKey() + " = ?");
-                parameters.add(entry.getValue());
+        // Build WHERE clause
+        for (Map.Entry<String, Object> entry : pageRequest.getFilters().entrySet()) {
+            String field = entry.getKey();
+            Object value = entry.getValue();
+
+            if (pageRequest.getLikeFields().contains(field)) {
+                whereClauses.add(field + " LIKE ?");
+                parameters.add("%" + value + "%");
+            } else {
+                whereClauses.add(field + " = ?");
+                parameters.add(value);
             }
-            whereClause = " WHERE " + String.join(" AND ", filters);
+        }
+
+        StringBuilder sql = new StringBuilder("SELECT * FROM ").append(tableName);
+
+        if (!whereClauses.isEmpty()) {
+            sql.append(" WHERE ").append(String.join(" AND ", whereClauses));
         }
 
         // Add sorting
+        // Add ORDER BY clause
         String orderClause = "";
         if (pageRequest.getSortBy() != null) {
             String[] sortParts = pageRequest.getSortBy().split(",");
@@ -238,14 +249,16 @@ public class H2DatabaseClient implements DatabaseClient {
             }
             String direction = (sortParts.length > 1 && "desc".equalsIgnoreCase(sortParts[1])) ? " DESC" : " ASC";
             orderClause = " ORDER BY " + sortField + direction;
+            sql.append(orderClause);
         }
 
-        sql += whereClause + orderClause + " LIMIT ? OFFSET ?";
+        // Add pagination (LIMIT + OFFSET)
+        sql.append(" LIMIT ? OFFSET ?");
         parameters.add(pageRequest.getSize());
         parameters.add(pageRequest.getPage() * pageRequest.getSize());
 
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (Connection connection = getConnection();
+             PreparedStatement stmt = connection.prepareStatement(sql.toString())) {
 
             for (int i = 0; i < parameters.size(); i++) {
                 stmt.setObject(i + 1, parameters.get(i));
@@ -256,7 +269,6 @@ public class H2DatabaseClient implements DatabaseClient {
             while (rs.next()) {
                 results.add(mapResultSetToObject(entityType, rs));
             }
-
             return results;
 
         } catch (Exception e) {

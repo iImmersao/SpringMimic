@@ -2,14 +2,12 @@ package com.iimmersao.springmimic.database;
 
 import com.iimmersao.springmimic.annotations.*;
 import com.iimmersao.springmimic.core.ConfigLoader;
-import com.iimmersao.springmimic.core.util.FieldValidator;
 import com.iimmersao.springmimic.exceptions.DatabaseException;
 import com.iimmersao.springmimic.web.PageRequest;
 
 import java.lang.reflect.Field;
 import java.sql.*;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Bean
 public class MySqlDatabaseClient implements DatabaseClient {
@@ -232,61 +230,67 @@ public class MySqlDatabaseClient implements DatabaseClient {
 
     @Override
     public <T> List<T> findAll(Class<T> entityType, PageRequest pageRequest) {
-        List<T> result = new ArrayList<>();
+        String tableName = getTableName(entityType);
+        List<String> whereClauses = new ArrayList<>();
+        List<Object> parameters = new ArrayList<>();
 
-        String table = getTableName(entityType);
-        StringBuilder query = new StringBuilder("SELECT * FROM " + table);
+        // Build WHERE clause with optional LIKE handling
+        for (Map.Entry<String, Object> entry : pageRequest.getFilters().entrySet()) {
+            String field = entry.getKey();
+            Object value = entry.getValue();
 
-        Map<String, String> filters = pageRequest.getFilters();
-        List<Object> values = new ArrayList<>();
-
-        if (!filters.isEmpty()) {
-            query.append(" WHERE ");
-            List<String> conditions = new ArrayList<>();
-            for (Map.Entry<String, String> entry : filters.entrySet()) {
-                conditions.add(entry.getKey() + " = ?");
-                values.add(entry.getValue()); // store the actual value to bind
+            if (pageRequest.getLikeFields().contains(field)) {
+                whereClauses.add(field + " LIKE ?");
+                parameters.add("%" + value + "%");
+            } else {
+                whereClauses.add(field + " = ?");
+                parameters.add(value);
             }
-            query.append(String.join(" AND ", conditions));
+        }
+
+        StringBuilder sql = new StringBuilder("SELECT * FROM ").append(tableName);
+
+        if (!whereClauses.isEmpty()) {
+            sql.append(" WHERE ").append(String.join(" AND ", whereClauses));
         }
 
         // Add sorting
+        // Add ORDER BY clause
+        String orderClause = "";
         if (pageRequest.getSortBy() != null) {
-          String[] sortParts = pageRequest.getSortBy().split(",");
-          String sortField = sortParts[0];
+            String[] sortParts = pageRequest.getSortBy().split(",");
+            String sortField = sortParts[0];
 
-          if (!isValidField(entityType, sortField)) {
-              throw new IllegalArgumentException("Invalid sort field: " + sortField);
-          }
-          String direction = (sortParts.length > 1 && "desc".equalsIgnoreCase(sortParts[1])) ? "DESC" : "ASC";
-          query.append(" ORDER BY ").append(sortField).append(" ").append(direction);
+            if (!isValidField(entityType, sortField)) {
+                throw new IllegalArgumentException("Invalid sort field: " + sortField);
+            }
+            String direction = (sortParts.length > 1 && "desc".equalsIgnoreCase(sortParts[1])) ? " DESC" : " ASC";
+            orderClause = " ORDER BY " + sortField + direction;
+            sql.append(orderClause);
         }
 
-        // Pagination
-        query.append(" LIMIT ? OFFSET ?");
-        values.add(pageRequest.getSize());
-        values.add(pageRequest.getPage());
+        // Add pagination (LIMIT + OFFSET)
+        sql.append(" LIMIT ? OFFSET ?");
+        parameters.add(pageRequest.getSize());
+        parameters.add(pageRequest.getPage() * pageRequest.getSize());
 
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query.toString())) {
+        try (Connection connection = getConnection();
+             PreparedStatement stmt = connection.prepareStatement(sql.toString())) {
 
-            // Set values for placeholders
-            for (int i = 0; i < values.size(); i++) {
-                stmt.setObject(i + 1, values.get(i));
+            for (int i = 0; i < parameters.size(); i++) {
+                stmt.setObject(i + 1, parameters.get(i));
             }
 
             ResultSet rs = stmt.executeQuery();
-
+            List<T> results = new ArrayList<>();
             while (rs.next()) {
-                T entity = mapResultSetToObject(entityType, rs);
-                result.add(entity);
+                results.add(mapResultSetToObject(entityType, rs));
             }
+            return results;
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to execute query: " + query, e);
+            throw new RuntimeException("Failed to fetch paginated results", e);
         }
-
-        return result;
     }
 
     // ===== Helper Methods =====

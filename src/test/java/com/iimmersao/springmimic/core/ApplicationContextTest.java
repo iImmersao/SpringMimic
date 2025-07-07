@@ -3,7 +3,6 @@ package com.iimmersao.springmimic.core;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -26,7 +25,7 @@ class ApplicationContextTest {
         context.initialize();
         Collection<Object> components = context.getComponents();
 
-        assertTrue(components.size() == 4); // ExampleService, FakeComponent, FakeController, TestController
+        assertEquals(4, components.size()); // ExampleService, FakeComponent, FakeController, TestController
     }
 
     @Test

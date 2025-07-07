@@ -6,12 +6,6 @@ import com.iimmersao.springmimic.annotations.Component;
 public class Port {
     int portNo;
 
-    /*
-    public Port() {
-        portNo = 8080;
-    }
-     */
-
     public Port(int portNo) {
         this.portNo = portNo;
     }

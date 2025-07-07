@@ -2,15 +2,14 @@ package com.iimmersao.springmimic.database;
 
 import com.iimmersao.springmimic.core.ConfigLoader;
 import com.iimmersao.springmimic.web.PageRequest;
-import com.iimmersao.springmimic.database.DatabaseClient;
 import com.iimmersao.springmimic.model.H2User;
 import org.junit.jupiter.api.*;
 
 import java.io.IOException;
 import java.sql.*;
-        import java.util.*;
+import java.util.*;
 
-        import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class H2DatabaseClientTest {
@@ -20,11 +19,9 @@ class H2DatabaseClientTest {
     private static final String USER = "sa";
     private static final String PASSWORD = "password";
 
-    private static ConfigLoader configLoader;
-
     @BeforeAll
     static void setup() throws SQLException, IOException {
-        configLoader = new ConfigLoader("application-h2.properties"); // or your test config file path
+        ConfigLoader configLoader = new ConfigLoader("application-h2.properties"); // or your test config file path
         client = new H2DatabaseClient(configLoader);
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
              Statement stmt = conn.createStatement()) {
@@ -134,7 +131,7 @@ class H2DatabaseClientTest {
         client.save(dave);
         client.save(danny);
 
-        Map<String, String> filters = new HashMap<>();
+        Map<String, Object> filters = new HashMap<>();
         filters.put("username", "danny");
         PageRequest request = new PageRequest();
         request.setPage(0);
@@ -143,7 +140,7 @@ class H2DatabaseClientTest {
 
         List<H2User> filtered = client.findAll(H2User.class, request);
         assertEquals(1, filtered.size());
-        assertEquals("danny", filtered.get(0).getUsername());
+        assertEquals("danny", filtered.getFirst().getUsername());
     }
 
     @Test

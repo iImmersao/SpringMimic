@@ -36,10 +36,6 @@ public class ApplicationContext {
                 components.put(clazz, instance);
             }
         }
-
-//        for (Object instance : components.values()) {
-//            injectDependencies(instance);
-//        }
     }
 
     public void injectDependencies() {

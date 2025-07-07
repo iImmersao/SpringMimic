@@ -2,7 +2,6 @@ package com.iimmersao.springmimic.routing;
 
 import com.iimmersao.springmimic.annotations.*;
 import com.iimmersao.springmimic.core.ApplicationContext;
-import com.iimmersao.springmimic.exceptions.UnauthorizedException;
 import com.iimmersao.springmimic.security.Authenticator;
 import com.iimmersao.springmimic.security.UserDetails;
 import com.iimmersao.springmimic.core.ExceptionHandler;
@@ -25,31 +24,22 @@ import java.util.regex.Pattern;
 
 public class RouteHandler {
 
-    private String httpMethod;
     private final Object controllerInstance;
     private final Method method;
-    private final Parameter[] parameters;
     private final List<MethodParameter> params;
     private final ApplicationContext context;
 
     private final String routePath;
-    private final Pattern pattern;                 // Compiled regex for matching paths
-    private final List<String> pathVariableNames;  // Names of variables in order
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public RouteHandler(String httpMethod, String routePath, Object controllerInstance, Method method,
+    public RouteHandler(String routePath, Object controllerInstance, Method method,
                         List<MethodParameter> params, ApplicationContext context) {
-        this.httpMethod = httpMethod;
         this.controllerInstance = controllerInstance;
         this.method = method;
-        this.parameters = method.getParameters();
         this.routePath = routePath;
         this.params = params;
         this.context = context;
-
-        this.pathVariableNames = new ArrayList<>();
-        this.pattern = compilePattern(routePath, pathVariableNames);
     }
 
     // Compiles route like /users/{id}/posts/{postId} into regex and records var names
@@ -74,25 +64,6 @@ public class RouteHandler {
 
         regex.append("$");
         return Pattern.compile(regex.toString());
-    }
-
-    // Checks if the URI matches this route's pattern
-    public boolean matches(String uri) {
-        return pattern.matcher(uri).matches();
-    }
-
-    // Extract path variables from URI into a map
-    private Map<String, String> extractPathVariables(String uri) {
-        Map<String, String> pathVars = new HashMap<>();
-        Matcher matcher = pattern.matcher(uri);
-        if (!matcher.matches()) return pathVars;
-
-        for (int i = 0; i < pathVariableNames.size(); i++) {
-            String name = pathVariableNames.get(i);
-            String value = matcher.group(i + 1);
-            pathVars.put(name, value);
-        }
-        return pathVars;
     }
 
     private Map<String, String> extractPathVariables(Matcher matcher) {
@@ -129,25 +100,6 @@ public class RouteHandler {
             result.computeIfAbsent(key, k -> new ArrayList<>()).add(value);
         }
         return result;
-    }
-
-    private String extractRequestBody(IHTTPSession session) {
-        try {
-            int contentLength = 0;
-
-            String contentLengthHeader = session.getHeaders().get("content-length");
-            if (contentLengthHeader != null) {
-                contentLength = Integer.parseInt(contentLengthHeader);
-            }
-
-            if (contentLength > 0) {
-                byte[] buffer = session.getInputStream().readNBytes(contentLength);
-                return new String(buffer, StandardCharsets.UTF_8);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
     }
 
     public Response handle(IHTTPSession session, Matcher matcher) {
@@ -190,8 +142,6 @@ public class RouteHandler {
                 }
             }
 
-
-        //try {
             Parameter[] parameters = method.getParameters();
             Object[] args = new Object[parameters.length];
 
@@ -217,7 +167,6 @@ public class RouteHandler {
             for (int i = 0; i < parameters.length; i++) {
                 Parameter param = parameters[i];
 
-
                 if (param.getType().equals(PageRequest.class)) {
                     PageRequest pageRequest = new PageRequest();
 
@@ -227,24 +176,23 @@ public class RouteHandler {
 
                     if (pageVals != null && !pageVals.isEmpty()) {
                         try {
-                            pageRequest.setPage(Integer.parseInt(pageVals.get(0)));
+                            pageRequest.setPage(Integer.parseInt(pageVals.getFirst()));
                         } catch (NumberFormatException ignored) {}
                     }
 
                     if (sizeVals != null && !sizeVals.isEmpty()) {
                         try {
-                            pageRequest.setSize(Integer.parseInt(sizeVals.get(0)));
+                            pageRequest.setSize(Integer.parseInt(sizeVals.getFirst()));
                         } catch (NumberFormatException ignored) {}
                     }
 
                     if (sortVals != null && !sortVals.isEmpty()) {
-                        pageRequest.setSortBy(sortVals.get(0));
+                        pageRequest.setSortBy(sortVals.getFirst());
                     }
 
                     args[i] = pageRequest;
                     continue;
                 }
-
 
                 if (param.isAnnotationPresent(PathVariable.class)) {
                     String name = param.getAnnotation(PathVariable.class).value();
@@ -259,7 +207,7 @@ public class RouteHandler {
                     List<String> values = queryParams.get(name);
 
                     if (values != null && !values.isEmpty()) {
-                        args[i] = convertValue(values.get(0), param.getType(), name);
+                        args[i] = convertValue(values.getFirst(), param.getType(), name);
                     } else {
                         args[i] = null; // treat as optional
                         if (param.getType().isPrimitive()) {
@@ -305,15 +253,6 @@ public class RouteHandler {
         }
     }
 
-    private NanoHTTPD.Response createJsonResponse(Object result) {
-        try {
-            String json = objectMapper.writeValueAsString(result);
-            return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json", json);
-        } catch (Exception e) {
-            return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.INTERNAL_ERROR, "text/plain", "JSON serialization failed");
-        }
-    }
-
     private Object convertValue(String raw, Class<?> type, String name) {
         if (raw == null) return null;
         if (type == String.class) return raw;
@@ -334,20 +273,5 @@ public class RouteHandler {
 
     public List<MethodParameter> getMethodParameters() {
         return params;
-    }
-
-    // Simple helper to build NanoHTTPD responses
-    static class NanoResponseHelper {
-        static Response ok(String body) {
-            return NanoHTTPD.newFixedLengthResponse(Response.Status.OK, "text/plain", body);
-        }
-
-        static Response badRequest(String message) {
-            return NanoHTTPD.newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", message);
-        }
-
-        static Response internalError(String message) {
-            return NanoHTTPD.newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", message);
-        }
     }
 }

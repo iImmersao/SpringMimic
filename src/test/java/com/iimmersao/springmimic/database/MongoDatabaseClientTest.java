@@ -20,11 +20,9 @@ public class MongoDatabaseClientTest {
 
     private DatabaseClient mongoClient;
 
-    private ConfigLoader configLoader;
-
     @BeforeAll
     void setup() throws IOException {
-        configLoader = new ConfigLoader("application-mongodb.properties"); // or your test config file path
+        ConfigLoader configLoader = new ConfigLoader("application-mongodb.properties"); // or your test config file path
         mongoClient = new MongoDatabaseClient(configLoader);
     }
 
@@ -162,7 +160,7 @@ public class MongoDatabaseClientTest {
         mongoClient.save(otherUser);
 
         PageRequest pageRequest = new PageRequest();
-        Map<String, String> filters = new HashMap<>();
+        Map<String, Object> filters = new HashMap<>();
         filters.put("username", "filterme");
         pageRequest.setFilters(filters);
 
@@ -171,6 +169,39 @@ public class MongoDatabaseClientTest {
 
         // Assert
         assertEquals(1, results.size());
-        assertEquals("filterme", ((TestMongoUser) results.get(0)).getUsername());
+        assertEquals("filterme", ((TestMongoUser) results.getFirst()).getUsername());
+    }
+
+    @Test
+    void shouldFindUsersByEmailContains() throws Exception {
+        // Arrange
+        TestMongoUser user1 = new TestMongoUser();
+        user1.setUsername("david");
+        user1.setEmail("david.smith@example.com");
+        TestMongoUser user2 = new TestMongoUser();
+        user2.setUsername("emma");
+        user2.setEmail("emma.jones@example.com");
+        TestMongoUser user3 = new TestMongoUser();
+        user3.setUsername("frank");
+        user3.setEmail("frankie@another.com");
+
+        mongoClient.save(user1);
+        mongoClient.save(user2);
+        mongoClient.save(user3);
+
+        PageRequest request = new PageRequest();
+        Map<String, Object> filters = new HashMap<>();
+        filters.put("email", "example.com");
+        request.setFilters(filters);
+        request.addLikeField("email");
+
+        // Act
+        List<TestMongoUser> result = mongoClient.findAll(TestMongoUser.class, request);
+
+        // Assert
+        assertEquals(2, result.size());
+        List<String> emails = result.stream().map(TestMongoUser::getEmail).toList();
+        assertTrue(emails.contains("david.smith@example.com"));
+        assertTrue(emails.contains("emma.jones@example.com"));
     }
 }

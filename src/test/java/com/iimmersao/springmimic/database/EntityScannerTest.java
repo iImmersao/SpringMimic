@@ -1,6 +1,5 @@
 package com.iimmersao.springmimic.database;
 
-import com.iimmersao.springmimic.database.EntityScanner;
 import com.iimmersao.springmimic.model.User;
 import org.junit.jupiter.api.Test;
 

@@ -1,44 +1,34 @@
 package com.iimmersao.springmimic.database;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iimmersao.springmimic.annotations.Bean;
 import com.iimmersao.springmimic.annotations.Column;
 import com.iimmersao.springmimic.annotations.Id;
 import com.iimmersao.springmimic.annotations.Table;
 import com.iimmersao.springmimic.core.ConfigLoader;
-import com.iimmersao.springmimic.core.util.FieldValidator;
 import com.iimmersao.springmimic.exceptions.DatabaseException;
 import com.iimmersao.springmimic.web.PageRequest;
 
-import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Sorts;
 import org.bson.Document;
-import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 import com.mongodb.client.*;
 
 import java.lang.reflect.Field;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static com.mongodb.client.model.Filters.eq;
 
 @Bean
 public class MongoDatabaseClient implements DatabaseClient {
 
-    private ConfigLoader config;
-    private final MongoClient client;
     private final MongoDatabase database;
-    private final ObjectMapper objectMapper;
 
     public MongoDatabaseClient(ConfigLoader config) {
-        this.config = config;
         try {
             String uri = config.get("mongodb.uri");
             String dbName = config.get("mongodb.database");
-            this.client = MongoClients.create(uri);
+            MongoClient client = MongoClients.create(uri);
             this.database = client.getDatabase(dbName);
-            this.objectMapper = new ObjectMapper();
         } catch (Exception e) {
             throw new DatabaseException("Failed to connect to MongoDB", e);
         }
@@ -145,20 +135,23 @@ public class MongoDatabaseClient implements DatabaseClient {
         String collectionName = getCollectionName(entityType);
         MongoCollection<Document> collection = database.getCollection(collectionName);
 
-        FindIterable<Document> iterable = collection.find()
-                .skip(pageRequest.getPage() * pageRequest.getSize())
-                .limit(pageRequest.getSize());
+        Document filterDoc = new Document();
 
-        if (!pageRequest.getFilters().isEmpty()) {
-            FieldValidator.validateFieldsExist(entityType, pageRequest.getFilters().keySet().stream().toList());
-            Bson filter = Filters.and(
-                    pageRequest.getFilters().entrySet().stream()
-                            .map(entry -> Filters.eq(entry.getKey(), entry.getValue()))
-                            .collect(Collectors.toList())
-            );
-            iterable.filter(filter);
+        for (Map.Entry<String, Object> entry : pageRequest.getFilters().entrySet()) {
+            String field = entry.getKey();
+            Object value = entry.getValue();
+
+            if (pageRequest.getLikeFields().contains(field)) {
+                // Case-insensitive regex match
+                filterDoc.append(field, new Document("$regex", value).append("$options", "i"));
+            } else {
+                filterDoc.append(field, value);
+            }
         }
 
+        FindIterable<Document> iterable = collection.find(filterDoc);
+
+        // Apply sorting
         if (pageRequest.getSortBy() != null) {
             String[] sortParts = pageRequest.getSortBy().split(",");
             String field = sortParts[0];
@@ -166,12 +159,17 @@ public class MongoDatabaseClient implements DatabaseClient {
             iterable.sort(Sorts.orderBy(direction == 1 ? Sorts.ascending(field) : Sorts.descending(field)));
         }
 
+        // Apply pagination
+        iterable = iterable
+                .skip(pageRequest.getPage() * pageRequest.getSize())
+                .limit(pageRequest.getSize());
+
         List<T> results = new ArrayList<>();
         for (Document doc : iterable) {
             try {
                 results.add(fromDocument(doc, entityType));
             } catch (Exception e) {
-                throw new DatabaseException("Failed to deserialize document to " + entityType.getSimpleName(), e);
+                throw new RuntimeException("Failed to convert document to entity", e);
             }
         }
 

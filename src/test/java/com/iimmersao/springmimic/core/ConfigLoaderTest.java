@@ -3,11 +3,7 @@ package com.iimmersao.springmimic.core;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -51,7 +47,7 @@ class ConfigLoaderTest {
     }
 
     @Test
-    public void shouldStripInlineCommentsAndTrimValues() {
+    void shouldStripInlineCommentsAndTrimValues() {
         String dbType = configLoader.get("db.type", "");
         assertNotNull(dbType);
         assertFalse(dbType.contains("#"), "Config value should not contain inline comments");

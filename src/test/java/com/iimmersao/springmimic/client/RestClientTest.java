@@ -108,24 +108,17 @@ class RestClientTest {
             Method method = session.getMethod();
 
             try {
-                switch (uri) {
-                    case "/hello":
-                        return newFixedLengthResponse("Hello World");
-                    case "/echo":
-                        return withBodyEcho(session);
-                    case "/update":
-                        return withBodyEcho(session);
-                    case "/modify":
-                        return withBodyEcho(session);
-                    case "/remove":
-                        return newFixedLengthResponse("Deleted");
-                    case "/notfound":
-                        return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "Not found");
-                    case "/error":
-                        return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "Server error");
-                    default:
-                        return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "Unknown route");
-                }
+                return switch (uri) {
+                    case "/hello" -> newFixedLengthResponse("Hello World");
+                    case "/echo" -> withBodyEcho(session);
+                    case "/update" -> withBodyEcho(session);
+                    case "/modify" -> withBodyEcho(session);
+                    case "/remove" -> newFixedLengthResponse("Deleted");
+                    case "/notfound" -> newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "Not found");
+                    case "/error" ->
+                            newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "Server error");
+                    default -> newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "Unknown route");
+                };
             } catch (Exception e) {
                 return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "Exception: " + e.getMessage());
             }

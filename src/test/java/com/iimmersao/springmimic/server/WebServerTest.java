@@ -57,7 +57,6 @@ class WebServerTest {
         Router router = realContext.getBean(Router.class);
         router.registerControllers(context.getControllers());
         realContext.injectDependencies();
-        //server = new WebServer(portToUse, router);
         server = realContext.getBean(WebServer.class);
         server.start(1000, false);
 

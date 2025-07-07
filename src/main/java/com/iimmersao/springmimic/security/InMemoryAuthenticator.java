@@ -4,7 +4,6 @@ import com.iimmersao.springmimic.annotations.Component;
 import com.iimmersao.springmimic.exceptions.UnauthorizedException;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 @Component

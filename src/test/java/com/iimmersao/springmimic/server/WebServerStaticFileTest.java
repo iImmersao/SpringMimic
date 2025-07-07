@@ -26,7 +26,7 @@ class WebServerStaticFileTest {
 
     private static Path tempDir;
     private static WebServer server;
-    private static int port = 8089;
+    private static final int port = 8089;
 
     @BeforeAll
     static void setUp() throws Exception {

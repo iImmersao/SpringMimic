@@ -9,10 +9,8 @@ import com.iimmersao.springmimic.database.MySqlDatabaseClient;
 import com.iimmersao.springmimic.routing.Port;
 import com.iimmersao.springmimic.routing.Router;
 import com.iimmersao.springmimic.server.WebServer;
-import fi.iki.elonen.NanoHTTPD;
 import org.junit.jupiter.api.*;
 
-        import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Base64;
@@ -24,14 +22,10 @@ import static org.junit.jupiter.api.Assertions.*;
 public class SecureControllerTest {
 
     private static WebServer server;
-    private static int port = 8081; // Use a unique port if your main app uses 8080
+    private static final int port = 8081; // Use a unique port if your main app uses 8080
 
     @BeforeAll
     static void setUp() throws Exception {
-//        ApplicationContext context = new ApplicationContext("com.iimmersao.springmimic.testcomponents");
-//        context.initialize();
-//        context.injectDependencies();
-
         ApplicationContext realContext = new ApplicationContext("com.iimmersao.springmimic");
         ConfigLoader config = new ConfigLoader("application.properties");
         realContext.registerBean(ConfigLoader.class, config);
@@ -53,7 +47,6 @@ public class SecureControllerTest {
         Router router = realContext.getBean(Router.class);
         router.registerControllers(realContext.getControllers());
         realContext.injectDependencies();
-        //server = new WebServer(portToUse, router);
         server = realContext.getBean(WebServer.class);
         server.start(1000, false);
 

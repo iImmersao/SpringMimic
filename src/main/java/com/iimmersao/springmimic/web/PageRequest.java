@@ -1,13 +1,16 @@
 package com.iimmersao.springmimic.web;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class PageRequest {
 
     public static class Sort {
         public String field;
         public boolean ascending;
+
 
         public Sort(String sortString) {
             if (sortString != null && sortString.contains(",")) {
@@ -24,12 +27,13 @@ public class PageRequest {
     private int page = 0;
     private int size = 10;
     private String sortBy; // e.g., "name,asc" or "createdAt,desc"
-    private Map<String, String> filters = new HashMap<>();
+    private Map<String, Object> filters = new HashMap<>();
+    private final Set<String> likeFields = new HashSet<>();
 
     public PageRequest() {
     }
 
-    public PageRequest(int page, int size, String sortBy, Map<String, String> filters) {
+    public PageRequest(int page, int size, String sortBy, Map<String, Object> filters) {
         this.page = page;
         this.size = size;
         this.sortBy = sortBy;
@@ -60,12 +64,24 @@ public class PageRequest {
         this.sortBy = sortBy;
     }
 
-    public Map<String, String> getFilters() {
+    public Map<String, Object> getFilters() {
         return filters;
     }
 
-    public void setFilters(Map<String, String> filters) {
+    public void setFilters(Map<String, Object> filters) {
         this.filters = filters;
+    }
+
+    public void addLikeField(String fieldName) {
+        likeFields.add(fieldName);
+    }
+
+    public Set<String> getLikeFields() {
+        return likeFields;
+    }
+
+    public boolean isLikeField(String fieldName) {
+        return likeFields.contains(fieldName);
     }
 
     @Override
