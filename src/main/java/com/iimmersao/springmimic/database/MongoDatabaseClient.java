@@ -176,6 +176,22 @@ public class MongoDatabaseClient implements DatabaseClient {
         return results;
     }
 
+    @Override
+    public boolean existsBy(Class<?> entityType, String fieldName, Object value) {
+        String collectionName = getCollectionName(entityType);
+        MongoCollection<Document> collection = database.getCollection(collectionName);
+        Document filter = new Document(fieldName, value);
+        return collection.find(filter).limit(1).iterator().hasNext();
+    }
+
+    @Override
+    public long countBy(Class<?> entityType, String fieldName, Object value) {
+        String collectionName = getCollectionName(entityType);
+        MongoCollection<Document> collection = database.getCollection(collectionName);
+        Document filter = new Document(fieldName, value);
+        return collection.countDocuments(filter);
+    }
+
     // ----------------------
     // Utility Methods
     // ----------------------

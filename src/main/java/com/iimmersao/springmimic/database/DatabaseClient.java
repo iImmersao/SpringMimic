@@ -40,4 +40,8 @@ public interface DatabaseClient {
     <T> void deleteAll(Class<T> entityType);
 
     <T> List<T> findAll(Class<T> entityType, PageRequest pageRequest);
+
+    boolean existsBy(Class<?> entityType, String fieldName, Object value);
+
+    long countBy(Class<?> entityType, String fieldName, Object value);
 }

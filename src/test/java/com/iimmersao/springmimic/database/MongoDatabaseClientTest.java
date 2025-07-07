@@ -204,4 +204,34 @@ public class MongoDatabaseClientTest {
         assertTrue(emails.contains("david.smith@example.com"));
         assertTrue(emails.contains("emma.jones@example.com"));
     }
+
+    @Test
+    void shouldReturnTrueWhenUserExistsInMongo() {
+        TestMongoUser user = new TestMongoUser();
+        user.setUsername("mongoUser");
+        user.setEmail("mongo@example.com");
+        mongoClient.save(user);
+
+        boolean exists = mongoClient.existsBy(TestMongoUser.class, "username", "mongoUser");
+        assertTrue(exists);
+    }
+
+    @Test
+    void shouldReturnFalseWhenUserMissingInMongo() {
+        boolean exists = mongoClient.existsBy(TestMongoUser.class, "username", "not_found");
+        assertFalse(exists);
+    }
+
+    @Test
+    void shouldCountUsersInMongoByEmail() {
+        TestMongoUser user1 = new TestMongoUser("a", "multi@example.com");
+        mongoClient.save(user1);
+        TestMongoUser user2 = new TestMongoUser("b", "multi@example.com");
+        mongoClient.save(user2);
+        TestMongoUser user3 = new TestMongoUser("c", "solo@example.com");
+        mongoClient.save(user3);
+
+        long count = mongoClient.countBy(TestMongoUser.class, "email", "multi@example.com");
+        assertEquals(2L, count);
+    }
 }

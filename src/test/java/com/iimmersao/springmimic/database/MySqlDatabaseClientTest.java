@@ -207,4 +207,40 @@ public class MySqlDatabaseClientTest {
         assertEquals(1, result.size());
         assertEquals("bob_jones", result.getFirst().username);
     }
+
+    @Test
+    void shouldReturnTrueWhenUserExistsByUsername() {
+        User user = new User();
+        user.username = "jdoe";
+        user.email = "jdoe@example.com";
+        dbClient.save(user);
+
+        boolean exists = dbClient.existsBy(User.class, "username", "jdoe");
+        assertTrue(exists);
+    }
+
+    @Test
+    void shouldReturnFalseWhenUserDoesNotExistByUsername() {
+        boolean exists = dbClient.existsBy(User.class, "username", "ghost");
+        assertFalse(exists);
+    }
+
+    @Test
+    void shouldCountUsersByEmail() {
+        User user1 = new User();
+        user1.username = "a";
+        user1.email = "shared@example.com";
+        dbClient.save(user1);
+        User user2 = new User();
+        user2.username = "b";
+        user2.email = "shared@example.com";
+        dbClient.save(user2);
+        User user3 = new User();
+        user3.username = "c";
+        user3.email = "other@example.com";
+        dbClient.save(user3);
+
+        long count = dbClient.countBy(User.class, "email", "shared@example.com");
+        assertEquals(2L, count);
+    }
 }

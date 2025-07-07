@@ -293,6 +293,40 @@ public class MySqlDatabaseClient implements DatabaseClient {
         }
     }
 
+    @Override
+    public boolean existsBy(Class<?> entityType, String fieldName, Object value) {
+        String table = getTableName(entityType);
+        String sql = "SELECT 1 FROM " + table + " WHERE " + fieldName + " = ? LIMIT 1";
+
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setObject(1, value);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to execute existsBy", e);
+        }
+    }
+
+    @Override
+    public long countBy(Class<?> entityType, String fieldName, Object value) {
+        String table = getTableName(entityType);
+        String sql = "SELECT COUNT(*) FROM " + table + " WHERE " + fieldName + " = ?";
+
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setObject(1, value);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() ? rs.getLong(1) : 0L;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to execute countBy", e);
+        }
+    }
+
     // ===== Helper Methods =====
 
     private boolean isValidField(Class<?> clazz, String fieldName) {
