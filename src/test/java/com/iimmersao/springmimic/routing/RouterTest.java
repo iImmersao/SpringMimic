@@ -34,7 +34,7 @@ public class RouterTest {
 
     @BeforeEach
     void setUp() throws IOException {
-        ConfigLoader config = new ConfigLoader("application.properties");
+        ConfigLoader config = new ConfigLoader();
         String dbType = config.get("db.type", "mysql").toLowerCase();
 
         // Create the appropriate DatabaseClient

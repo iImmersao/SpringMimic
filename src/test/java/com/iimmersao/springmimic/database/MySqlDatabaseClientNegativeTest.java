@@ -7,7 +7,7 @@ import java.io.IOException;
 
 class MySqlDatabaseClientNegativeTest extends AbstractDatabaseClientNegativeTest {
 
-    private final MySqlDatabaseClient mysqlClient = new MySqlDatabaseClient(new ConfigLoader("application.properties"));
+    private final MySqlDatabaseClient mysqlClient = new MySqlDatabaseClient(new ConfigLoader());
 
     MySqlDatabaseClientNegativeTest() throws IOException {
     }

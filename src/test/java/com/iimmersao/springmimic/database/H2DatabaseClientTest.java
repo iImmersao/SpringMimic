@@ -1,8 +1,8 @@
 package com.iimmersao.springmimic.database;
 
 import com.iimmersao.springmimic.core.ConfigLoader;
-import com.iimmersao.springmimic.web.PageRequest;
 import com.iimmersao.springmimic.model.H2User;
+import com.iimmersao.springmimic.web.PageRequest;
 import org.junit.jupiter.api.*;
 
 import java.io.IOException;

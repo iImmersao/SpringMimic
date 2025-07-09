@@ -27,7 +27,7 @@ public class SecureControllerTest {
     @BeforeAll
     static void setUp() throws Exception {
         ApplicationContext realContext = new ApplicationContext("com.iimmersao.springmimic");
-        ConfigLoader config = new ConfigLoader("application.properties");
+        ConfigLoader config = new ConfigLoader();
         realContext.registerBean(ConfigLoader.class, config);
         // Create the appropriate DatabaseClient
         DatabaseClient databaseClient;

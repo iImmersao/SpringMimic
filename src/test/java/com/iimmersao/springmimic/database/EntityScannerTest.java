@@ -1,6 +1,6 @@
 package com.iimmersao.springmimic.database;
 
-import com.iimmersao.springmimic.model.User;
+import com.iimmersao.springmimic.model.TestMongoUser;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;
@@ -15,6 +15,6 @@ public class EntityScannerTest {
         Set<Class<?>> entities = scanner.scanEntities("com.iimmersao.springmimic.model");
 
         assertNotNull(entities);
-        assertTrue(entities.contains(User.class), "User entity should be detected");
+        assertTrue(entities.contains(TestMongoUser.class), "User entity should be detected");
     }
 }

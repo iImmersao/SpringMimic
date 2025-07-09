@@ -22,6 +22,11 @@ public class ApplicationContext {
         manualBeans.put(type, instance);
     }
 
+    public <T> void createAndRegisterBean(Class<T> type) {
+        Object o = createInstance(type);
+        registerBean(type, (T) o);
+    }
+
     public void initialize() {
         Set<Class<?>> componentClasses = new ComponentScanner(basePackage).scan();
 

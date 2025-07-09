@@ -41,7 +41,7 @@ public class MySqlDatabaseClientTest {
 
     @BeforeAll
     void init() throws Exception {
-        ConfigLoader configLoader = new ConfigLoader("application.properties"); // or your test config file path
+        ConfigLoader configLoader = new ConfigLoader(); // or your test config file path
         dbClient = new MySqlDatabaseClient(configLoader);
     }
 

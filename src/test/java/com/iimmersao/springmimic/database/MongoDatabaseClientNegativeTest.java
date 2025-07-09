@@ -1,7 +1,7 @@
 package com.iimmersao.springmimic.database;
 
 import com.iimmersao.springmimic.core.ConfigLoader;
-import com.iimmersao.springmimic.model.MongoUser;
+import com.iimmersao.springmimic.model.TestMongoUser;
 import com.iimmersao.springmimic.web.PageRequest;
 import org.junit.jupiter.api.Test;
 
@@ -24,7 +24,7 @@ class MongoDatabaseClientNegativeTest extends AbstractDatabaseClientNegativeTest
 
     @Override
     protected Class<?> getEntityClass() {
-        return MongoUser.class;
+        return TestMongoUser.class;
     }
 
     @Test

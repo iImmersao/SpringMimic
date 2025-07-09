@@ -13,11 +13,7 @@ public class StaticFileHandler {
     private static final String basePath;
 
     static {
-        try {
-            basePath = new ConfigLoader("application.properties").get("static.path", "public");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        basePath = new ConfigLoader().get("static.path", "public");
     }
 
     public static NanoHTTPD.Response serve(String uriPath) throws IOException {

@@ -13,7 +13,7 @@ class ConfigLoaderTest {
 
     @BeforeEach
     public void setUp() throws IOException {
-        configLoader = new ConfigLoader("application.properties"); // or your test config file path
+        configLoader = new ConfigLoader(); // or your test config file path
     }
 
     @Test
