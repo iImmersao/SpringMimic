@@ -59,6 +59,10 @@ public class MongoDatabaseClient implements DatabaseClient {
 
     @Override
     public <T> Optional<T> findById(Class<T> entityType, Object id) {
+        if (isInvalidObjectId(id)) {
+            throw new IllegalArgumentException("Invalid ID format: must be a 24-character hex string.");
+        }
+
         try {
             String collectionName = getCollectionName(entityType);
             MongoCollection<Document> collection = database.getCollection(collectionName);
@@ -109,6 +113,10 @@ public class MongoDatabaseClient implements DatabaseClient {
 
     @Override
     public <T> void deleteById(Class<T> entityType, Object id) {
+        if (isInvalidObjectId(id)) {
+            throw new IllegalArgumentException("Invalid ID format: must be a 24-character hex string.");
+        }
+
         try {
             String collectionName = getCollectionName(entityType);
             MongoCollection<Document> collection = database.getCollection(collectionName);
@@ -263,6 +271,22 @@ public class MongoDatabaseClient implements DatabaseClient {
             return new ObjectId((String) id);
         } else {
             throw new IllegalArgumentException("Unsupported ID type: " + id.getClass());
+        }
+    }
+
+    private boolean isInvalidObjectId(Object id) {
+        if (id instanceof ObjectId) {
+            return false;
+        }
+
+        if (id instanceof String) {
+            if (ObjectId.isValid((String) id)) {
+                return false;
+            } else {
+                return true;
+            }
+        } else {
+            return true;
         }
     }
 }

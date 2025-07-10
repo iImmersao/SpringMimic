@@ -44,6 +44,11 @@ public class MongoDatabaseClientTest {
     }
 
     @Test
+    void shouldGracefullyNotFindUserById() throws DatabaseException {
+        assertThrows(IllegalArgumentException.class, () -> mongoClient.findById(TestMongoUser.class, "123"));
+    }
+
+    @Test
     void shouldFindAllUsers() throws DatabaseException {
         mongoClient.save(new TestMongoUser("Bob", "bob@example.com"));
         mongoClient.save(new TestMongoUser("Charlie", "charlie@example.com"));
