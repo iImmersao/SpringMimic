@@ -33,7 +33,7 @@ class WebServerTest {
     @BeforeAll
     static void startServer() throws Exception {
         ApplicationContext context = new ApplicationContext("com.iimmersao.springmimic.testcomponents");
-        context.initialize();
+        context.initialize(null);
         context.injectDependencies();
 
         ApplicationContext realContext = new ApplicationContext("com.iimmersao.springmimic");
@@ -53,7 +53,7 @@ class WebServerTest {
         realContext.registerBean(Port.class, portToUse);
         RestClient restClient = new RestClient();
         realContext.registerBean(RestClient.class, restClient);
-        realContext.initialize();
+        realContext.initialize(null);
         Router router = realContext.getBean(Router.class);
         router.registerControllers(context.getControllers());
         realContext.injectDependencies();

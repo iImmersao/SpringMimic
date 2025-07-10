@@ -43,7 +43,7 @@ public class SecureControllerTest {
         realContext.registerBean(ApplicationContext.class, realContext); // Move to constructor?
         RestClient restClient = new RestClient();
         realContext.registerBean(RestClient.class, restClient);
-        realContext.initialize();
+        realContext.initialize(null);
         Router router = realContext.getBean(Router.class);
         router.registerControllers(realContext.getControllers());
         realContext.injectDependencies();

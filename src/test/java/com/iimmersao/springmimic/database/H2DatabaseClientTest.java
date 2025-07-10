@@ -166,6 +166,7 @@ class H2DatabaseClientTest {
     }
 
     @Test
+    @Order(8)
     void shouldDetectUserExistsInH2() {
         H2User user = new H2User();
         user.setUsername("h2user");
@@ -176,11 +177,13 @@ class H2DatabaseClientTest {
     }
 
     @Test
+    @Order(9)
     void shouldReturnFalseIfUserNotFoundInH2() {
         assertFalse(client.existsBy(H2User.class, "username", "ghost"));
     }
 
     @Test
+    @Order(10)
     void shouldCountUsersInH2ByEmail() {
         H2User user1 = new H2User();
         user1.setUsername("x");
@@ -197,4 +200,14 @@ class H2DatabaseClientTest {
 
         assertEquals(2L, client.countBy(H2User.class, "email", "h2@example.com"));
     }
+
+    @Test
+    @Order(11)
+    void shouldGracefullyNotFindUserById() {
+        H2User user = new H2User();
+
+        Optional<H2User> found = client.findById(H2User.class, "686fd523beaccc7dd473aef0");
+        assertFalse(found.isPresent());
+    }
+
 }

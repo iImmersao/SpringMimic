@@ -53,7 +53,7 @@ public class RouterTest {
         context.registerBean(ConfigLoader.class, config);
         RestClient restClient = new RestClient();
         context.registerBean(RestClient.class, restClient);
-        context.initialize();
+        context.initialize(null);
         router = context.getBean(Router.class);
         context.injectDependencies();
         Set<Object> controllers = Set.of(new TestController());

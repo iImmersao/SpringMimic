@@ -101,8 +101,9 @@ public class H2DatabaseClient implements DatabaseClient {
             Field idField = getIdField(clazz);
             try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
+                    Object key = generatedKeys.getObject(1);
                     idField.setAccessible(true);
-                    idField.set(entity, generatedKeys.getObject(1));
+                    idField.set(entity, key);
                 }
             }
 
@@ -113,6 +114,10 @@ public class H2DatabaseClient implements DatabaseClient {
 
     @Override
     public <T> Optional<T> findById(Class<T> entityType, Object id) {
+        if (!isValidId(id)) {
+            return Optional.empty();
+        }
+
         String sql = "SELECT * FROM " + getTableName(entityType) + " WHERE id = ?";
 
         try (Connection conn = getConnection();
@@ -127,7 +132,7 @@ public class H2DatabaseClient implements DatabaseClient {
             }
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to find entity by ID", e);
+            throw new DatabaseException("Failed to find entity by ID", e);
         }
     }
 
@@ -350,4 +355,18 @@ public class H2DatabaseClient implements DatabaseClient {
             }
         }
     }
-}
+
+    private boolean isValidId(Object id) {
+        if (id instanceof Integer) {
+            return true;
+        } else if (id instanceof String) {
+            try {
+                Integer.parseInt((String) id);
+                return true;
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }}

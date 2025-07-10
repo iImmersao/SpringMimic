@@ -11,7 +11,7 @@ class ApplicationContextTest {
     @Test
     void shouldFindControllers() {
         ApplicationContext context = new ApplicationContext("com.iimmersao.springmimic.testcomponents");
-        context.initialize();
+        context.initialize(null);
         Collection<Object> controllers = context.getControllers();
 
         // Should only contain Controllers
@@ -22,7 +22,7 @@ class ApplicationContextTest {
     @Test
     void shouldFindAllComponents() {
         ApplicationContext context = new ApplicationContext("com.iimmersao.springmimic.testcomponents");
-        context.initialize();
+        context.initialize(null);
         Collection<Object> components = context.getComponents();
 
         assertEquals(4, components.size()); // ExampleService, FakeComponent, FakeController, TestController
@@ -31,7 +31,7 @@ class ApplicationContextTest {
     @Test
     void shouldFindServices() {
         ApplicationContext context = new ApplicationContext("com.iimmersao.springmimic.testcomponents");
-        context.initialize();
+        context.initialize(null);
         Collection<Object> services = context.getServices();
 
         // Should only contain Controllers

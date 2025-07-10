@@ -102,6 +102,10 @@ public class MongoDatabaseClient implements DatabaseClient {
             Field idField = getIdField(clazz);
             idField.setAccessible(true);
             Object idValue = idField.get(entity);
+            if (isInvalidObjectId(idValue)) {
+                throw new IllegalArgumentException("Invalid ID format: must be a 24-character hex string.");
+            }
+
             ObjectId objectId = convertToObjectId(idValue);
 
             Document updatedDoc = toBsonDocument(entity);
@@ -280,11 +284,7 @@ public class MongoDatabaseClient implements DatabaseClient {
         }
 
         if (id instanceof String) {
-            if (ObjectId.isValid((String) id)) {
-                return false;
-            } else {
-                return true;
-            }
+            return !ObjectId.isValid((String) id);
         } else {
             return true;
         }

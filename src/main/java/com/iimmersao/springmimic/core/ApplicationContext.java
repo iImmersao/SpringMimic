@@ -1,6 +1,10 @@
 package com.iimmersao.springmimic.core;
 
 import com.iimmersao.springmimic.annotations.*;
+import com.iimmersao.springmimic.database.DatabaseClient;
+import com.iimmersao.springmimic.repository.CrudRepository;
+import com.iimmersao.springmimic.repository.RepositoryProxyFactory;
+import com.iimmersao.springmimic.repository.RepositoryUtils;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
@@ -14,6 +18,8 @@ public class ApplicationContext {
     private final Map<Class<?>, Object> manualBeans = new HashMap<>();
     private final Map<Class<?>, Object> components = new HashMap<>();
 
+    private DatabaseClient dbClient;
+
     public ApplicationContext(String basePackage) {
         this.basePackage = basePackage;
     }
@@ -22,13 +28,40 @@ public class ApplicationContext {
         manualBeans.put(type, instance);
     }
 
+    public <T> void registerDatabaseBean(Class<T> type, T instance) {
+        this.dbClient = (DatabaseClient) instance;
+        registerBean(type, instance);
+    }
+
     public <T> void createAndRegisterBean(Class<T> type) {
+        if (type.isInterface()) {
+            // Interfaces such as @Repository can't be instantiated and should be handled later by a different means.
+            return;
+        }
         Object o = createInstance(type);
         registerBean(type, (T) o);
     }
 
-    public void initialize() {
+    @SuppressWarnings("unchecked")
+    <T> void registerRepository(Class<?> repositoryInterface, Object proxy) {
+        registerBean((Class<T>) repositoryInterface, (T) proxy);
+    }
+
+    public void initialize(ComponentScanner appComponents) {
         Set<Class<?>> componentClasses = new ComponentScanner(basePackage).scan();
+        if (appComponents != null) {
+            componentClasses.addAll(appComponents.scan());
+        }
+
+        // Register @Repository interfaces via proxy
+        for (Class<?> cls : componentClasses) {
+            if (cls.isAnnotationPresent(Repository.class) && cls.isInterface()
+                    && CrudRepository.class.isAssignableFrom(cls)) {
+                Class<?> entityType = RepositoryUtils.extractEntityClass(cls);
+                Object proxy = new RepositoryProxyFactory(dbClient).createRepository(cls, entityType);
+                registerRepository(cls, proxy);
+            }
+        }
 
         for (Class<?> clazz : componentClasses) {
             // Skip classes already manually registered

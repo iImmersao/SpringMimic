@@ -23,7 +23,7 @@ public class RepositoryInvocationHandler implements InvocationHandler {
         // Handle standard methods
         switch (name) {
             case "findById":
-                return Optional.ofNullable(client.findById(entityType, args[0]));
+                return client.findById(entityType, args[0]);
             case "findAll":
                 return client.findAll(entityType);
             case "save":

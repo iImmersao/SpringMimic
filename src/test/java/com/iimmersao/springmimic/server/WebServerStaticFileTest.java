@@ -64,7 +64,7 @@ class WebServerStaticFileTest {
         context.registerBean(Port.class, portToUse);
         RestClient restClient = new RestClient();
         context.registerBean(RestClient.class, restClient);
-        context.initialize();
+        context.initialize(null);
 
         Router router = context.getBean(Router.class);
         router.registerControllers(context.getControllers());

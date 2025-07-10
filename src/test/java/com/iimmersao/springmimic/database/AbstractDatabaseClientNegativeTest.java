@@ -65,6 +65,7 @@ abstract class AbstractDatabaseClientNegativeTest {
 
     @Test
     void shouldThrowWhenCallingDeleteByIdWithWrongType() {
+        System.out.println("Running shouldThrowWhenCallingDeleteByIdWithWrongType");
         Object wrongId = "thisShouldBeAnInteger"; // or 123L if expecting Integer
         assertThrows(RuntimeException.class, () -> client().deleteById(getEntityClass(), wrongId));
     }

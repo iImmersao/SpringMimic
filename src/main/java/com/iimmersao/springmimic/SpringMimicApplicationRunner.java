@@ -17,11 +17,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
-import java.util.Set;
-
 public class SpringMimicApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(SpringMimicApplicationRunner.class);
+
+    private static boolean running;
 
     public static void run(Class<?> applicationClass) {
         try {
@@ -51,7 +51,7 @@ public class SpringMimicApplicationRunner {
             // Create application context and manually register the client
             ApplicationContext context = new ApplicationContext("com.iimmersao.springmimic");
             context.registerBean(ApplicationContext.class, context); // Move to constructor?
-            context.registerBean(DatabaseClient.class, databaseClient);
+            context.registerDatabaseBean(DatabaseClient.class, databaseClient);
             context.registerBean(ConfigLoader.class, config);
             RestClient restClient = new RestClient();
             context.registerBean(RestClient.class, restClient);
@@ -60,12 +60,8 @@ public class SpringMimicApplicationRunner {
 
             // Register application-level components
             ComponentScanner componentScanner = new ComponentScanner(getBasePackage(applicationClass));
-            Set<Class<?>> applicationComponents =  componentScanner.scan();
-            for (Class<?> c : applicationComponents) {
-                context.createAndRegisterBean(c);
-            }
 
-            context.initialize();
+            context.initialize(componentScanner);
             Router router = context.getBean(Router.class);
             router.registerControllers(context.getControllers());
             context.injectDependencies();
@@ -77,12 +73,25 @@ public class SpringMimicApplicationRunner {
             System.out.println("Server started on port " + port);
             log.info("Application started with database: {}", config.get("db.type"));
             log.info("Environment: {}", config.get("env", "development"));
-            // Block main thread
-            Thread.currentThread().join();
+            // Allow main thread to be shut down by another thread.
+            running = true;
+
+            while (running) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    running = false;
+                }
+            }
         } catch (Exception e) {
             System.err.println("Application failed to start: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    public void stop() {
+        running = false;
     }
 
     private static String getBasePackage(Class<?> mainClass) {
