@@ -151,3 +151,15 @@ h2.password=password
 
     Maven 3.8+
 
+    MySql
+
+    MongoDB 8.0.11
+
+    MySql 8.0.42
+
+## 📜 License
+
+This project is licensed under the MIT License.  
+Copyright (c) 2025 Philip Patchin and iImmersao Corp
+See [LICENSE](./LICENSE) for full details.
+
