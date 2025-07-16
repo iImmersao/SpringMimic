@@ -6,6 +6,7 @@ import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 @Component
 public class ConfigLoader {
@@ -21,43 +22,6 @@ public class ConfigLoader {
         this.configFileName = filename;
         loadProperties();
     }
-    /*
-    public ConfigLoader(String filename) throws IOException {
-        load(filename);
-    }
-
-    private void load(String filename) throws IOException {
-        try (InputStream input = getClass().getClassLoader().getResourceAsStream(filename)) {
-            if (input == null) {
-                throw new FileNotFoundException("Configuration file not found: " + filename);
-            }
-
-            BufferedReader reader = new BufferedReader(new InputStreamReader(input));
-            String line;
-
-            while ((line = reader.readLine()) != null) {
-                line = line.trim();
-
-                // Skip empty lines and full-line comments
-                if (line.isEmpty() || line.startsWith("#")) continue;
-
-                // Remove inline comments
-                int commentIndex = line.indexOf("#");
-                if (commentIndex >= 0) {
-                    line = line.substring(0, commentIndex).trim();
-                }
-
-                // Parse key=value
-                int equalsIndex = line.indexOf("=");
-                if (equalsIndex > 0) {
-                    String key = line.substring(0, equalsIndex).trim();
-                    String value = line.substring(equalsIndex + 1).trim();
-                    config.put(key, value);
-                }
-            }
-        }
-    }
-*/
 
     private void loadProperties() {
         // 1. Load framework-level config (from inside the framework JAR)
@@ -116,5 +80,19 @@ public class ConfigLoader {
         } catch (Exception e) {
             return defaultValue;
         }
+    }
+
+    public Map<String, String> getSubProperties(String prefix, Set<String> allowedKeys) {
+        Map<String, String> result = new HashMap<>();
+        for (Map.Entry<String, String> entry : properties.entrySet()) {
+            String key = entry.getKey();
+            if (key.startsWith(prefix)) {
+                String subKey = key.substring(prefix.length());
+                if (allowedKeys == null || allowedKeys.contains(subKey)) {
+                    result.put(subKey, entry.getValue());
+                }
+            }
+        }
+        return result;
     }
 }

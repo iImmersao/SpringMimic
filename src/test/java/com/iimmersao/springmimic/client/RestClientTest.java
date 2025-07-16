@@ -45,34 +45,34 @@ class RestClientTest {
     // === SUCCESS CASES ===
 
     @Test
-    void testGet() {
+    void testGet() throws IOException {
         String result = client.get(BASE_URL + "/hello", String.class);
         assertEquals("Hello World", result);
     }
 
     @Test
-    void testPost() {
+    void testPost() throws IOException {
         User user = new User("Alice");
         String result = client.post(BASE_URL + "/echo", user, String.class);
         assertTrue(result.contains("Alice"));
     }
 
     @Test
-    void testPut() {
+    void testPut() throws IOException {
         User user = new User("Bob");
         String result = client.put(BASE_URL + "/update", user, String.class);
         assertTrue(result.contains("Bob"));
     }
 
     @Test
-    void testPatch() {
+    void testPatch() throws IOException {
         User user = new User("Charlie");
         String result = client.patch(BASE_URL + "/modify", user, String.class);
         assertTrue(result.contains("Charlie"));
     }
 
     @Test
-    void testDelete() {
+    void testDelete() throws IOException {
         String result = client.delete(BASE_URL + "/remove", String.class);
         assertEquals("Deleted", result);
     }

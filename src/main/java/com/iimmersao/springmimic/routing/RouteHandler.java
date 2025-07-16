@@ -231,20 +231,33 @@ public class RouteHandler {
             // Invoke and serialize result
             Object result = method.invoke(controllerInstance, args);
 
-            // Check for @Produces on the method
-            Produces produces = method.getAnnotation(Produces.class);
+            if (method.isAnnotationPresent(ResponseBody.class)) {
+                String body;
+                if (result == null) {
+                    body = "";
+                } else if (result instanceof String) {
+                    body = (String) result;
+                } else {
+                    body = objectMapper.writeValueAsString(result); // JSON
+                }
 
-            if (produces != null && "application/json".equalsIgnoreCase(produces.value())) {
-                String json = new ObjectMapper().writeValueAsString(result);
-                return NanoHTTPD.newFixedLengthResponse(
-                        NanoHTTPD.Response.Status.OK,
-                        "application/json",
-                        json
-                );
+                return NanoHTTPD.newFixedLengthResponse(Response.Status.OK, "application/json", body);
+            } else {
+                // Check for @Produces on the method
+                Produces produces = method.getAnnotation(Produces.class);
+
+                if (produces != null && "application/json".equalsIgnoreCase(produces.value())) {
+                    String json = new ObjectMapper().writeValueAsString(result);
+                    return NanoHTTPD.newFixedLengthResponse(
+                            NanoHTTPD.Response.Status.OK,
+                            "application/json",
+                            json
+                    );
+                }
+
+                String json = objectMapper.writeValueAsString(result);
+                return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json", json);
             }
-
-            String json = objectMapper.writeValueAsString(result);
-            return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json", json);
 
         } catch (InvocationTargetException e) {
             return ExceptionHandler.handle((Exception) e.getTargetException());
