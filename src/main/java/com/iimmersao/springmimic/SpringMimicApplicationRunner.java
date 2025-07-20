@@ -25,8 +25,14 @@ public class SpringMimicApplicationRunner {
 
     public static void run(Class<?> applicationClass) {
         try {
+            // Create the context for the user-level application
+            String basePackage = getBasePackage(applicationClass);
+            System.out.println("Base package is: " + basePackage);
+            ApplicationContext context = new ApplicationContext(basePackage);
+
             // Load configuration
             ConfigLoader config = new ConfigLoader();
+            context.registerBean(ConfigLoader.class, config);
             String level = config.get("logging.level");
             if (level != null) System.setProperty("LOG_LEVEL", level.trim());
 
@@ -37,34 +43,45 @@ public class SpringMimicApplicationRunner {
             loggerContext.getLogger("root")
                     .setLevel(ch.qos.logback.classic.Level.convertAnSLF4JLevel(Level.valueOf(level)));
 
-            String dbType = config.get("db.type", "mysql").toLowerCase();
-
+            System.out.println("Setting up database access");
             // Create the appropriate DatabaseClient
             DatabaseClient databaseClient;
+            String dbType = config.get("db.type", "mysql").toLowerCase();
             switch (dbType) {
                 case "mongo", "mongodb" -> databaseClient = new MongoDatabaseClient(config);
                 case "mysql" -> databaseClient = new MySqlDatabaseClient(config);
                 case "h2" -> databaseClient = new H2DatabaseClient(config);
                 default -> throw new IllegalArgumentException("Unsupported database type: " + dbType);
             }
+            System.out.println("Set up DatabaseClient as: " + databaseClient.getClass().getName());
+            context.registerDatabaseBean(DatabaseClient.class, databaseClient);
+            System.out.println("Initialising application context");
+            context.initialize(null);
+            System.out.println("Initialised application context");
 
             // Create application context and manually register the client
-            ApplicationContext context = new ApplicationContext("com.iimmersao.springmimic");
-            context.registerBean(ApplicationContext.class, context); // Move to constructor?
-            context.registerDatabaseBean(DatabaseClient.class, databaseClient);
-            context.registerBean(ConfigLoader.class, config);
-            RestClient restClient = new RestClient();
-            context.registerBean(RestClient.class, restClient);
+            ApplicationContext springMimicContext = new ApplicationContext("com.iimmersao.springmimic");
+            springMimicContext.registerBean(ConfigLoader.class, config);
+
+            springMimicContext.registerDatabaseBean(DatabaseClient.class, databaseClient);
+            springMimicContext.registerBean(ApplicationContext.class, context);
+
             Port port = new Port(config.getInt("server.port", 8080));
-            context.registerBean(Port.class, port);
-
-            // Register application-level components
-            ComponentScanner componentScanner = new ComponentScanner(getBasePackage(applicationClass));
-
-            context.initialize(componentScanner);
-            Router router = context.getBean(Router.class);
+            springMimicContext.registerBean(Port.class, port);
+            RestClient restClient = new RestClient();
+            springMimicContext.registerBean(RestClient.class, restClient);
+            springMimicContext.initialize(null);
+            System.out.println("Initialised SpringMimic context");
+            Router router = springMimicContext.getBean(Router.class);
             router.registerControllers(context.getControllers());
+            springMimicContext.injectDependencies();
+            System.out.println("Injected SpringMimic dependencies");
+
+            context.registerBean(ApplicationContext.class, springMimicContext);
+            context.addComponents(springMimicContext);
+            System.out.println("Added SpringMimic components to application context");
             context.injectDependencies();
+            System.out.println("Injected application dependencies");
 
             // Start the web server
             WebServer server = context.getBean(WebServer.class);

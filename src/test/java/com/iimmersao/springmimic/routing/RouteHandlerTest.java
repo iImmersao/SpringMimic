@@ -129,8 +129,9 @@ public class RouteHandlerTest {
         Response response = handler.handle(session, matcher);
 
         assertEquals(Response.Status.OK.getRequestStatus(), response.getStatus().getRequestStatus());
+        assertEquals("text/plain", response.getMimeType());
         String body = extractResponseBody(response);
-        assertEquals("\"User ID: abc123, verbose=true\"", body.trim());
+        assertEquals("User ID: abc123, verbose=true", body.trim());
     }
 
     @Test

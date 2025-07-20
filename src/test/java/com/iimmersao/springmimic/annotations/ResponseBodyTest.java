@@ -70,8 +70,8 @@ class ResponseBodyTest {
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
         assertEquals(200, response.statusCode());
+        assertEquals("text/plain", response.headers().firstValue("Content-Type").orElse(""));
         assertEquals("hello", response.body());
-        assertEquals("application/json", response.headers().firstValue("Content-Type").orElse(""));
     }
 
     @Test
@@ -94,6 +94,98 @@ class ResponseBodyTest {
     void testWithoutResponseBodyAnnotation() throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(BASE_URL + "/noannotation"))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, response.statusCode());
+        assertEquals("text/plain", response.headers().firstValue("Content-Type").orElse(""));
+
+        String expectedJson = "H2User{id=42, username='Alice', email='alice@example.com'}";
+        assertEquals(expectedJson, response.body());
+    }
+
+    @Test
+    void testRestPlainTextResponse() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/restplaintext"))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, response.statusCode());
+        assertEquals("text/plain", response.headers().firstValue("Content-Type").orElse(""));
+        assertEquals("hello", response.body());
+    }
+
+    @Test
+    void testRestJsonResponse() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/restjson"))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, response.statusCode());
+        assertEquals("application/json", response.headers().firstValue("Content-Type").orElse(""));
+
+        String expectedJson = "{\"id\":42,\"username\":\"Alice\",\"email\":\"alice@example.com\"}";
+        assertEquals(expectedJson, response.body());
+    }
+
+    @Test
+    void testRestWithoutResponseBodyAnnotation() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/restnoannotation"))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, response.statusCode());
+        assertEquals("application/json", response.headers().firstValue("Content-Type").orElse(""));
+
+        String expectedJson = "{\"id\":42,\"username\":\"Alice\",\"email\":\"alice@example.com\"}";
+        assertEquals(expectedJson, response.body());
+    }
+
+    @Test
+    void testRespBodyPlainTextResponse() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/respbodyplaintext"))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, response.statusCode());
+        assertEquals("text/plain", response.headers().firstValue("Content-Type").orElse(""));
+        assertEquals("hello", response.body());
+    }
+
+    @Test
+    void testRespBodyJsonResponse() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/respbodyjson"))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, response.statusCode());
+        assertEquals("application/json", response.headers().firstValue("Content-Type").orElse(""));
+
+        String expectedJson = "{\"id\":42,\"username\":\"Alice\",\"email\":\"alice@example.com\"}";
+        assertEquals(expectedJson, response.body());
+    }
+
+    @Test
+    void testRespBodyWithoutResponseBodyAnnotation() throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(BASE_URL + "/respbodynoannotation"))
                 .GET()
                 .build();
 

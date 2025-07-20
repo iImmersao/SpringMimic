@@ -1,6 +1,8 @@
 package com.iimmersao.springmimic.routing;
 
 import com.iimmersao.springmimic.annotations.Component;
+import com.iimmersao.springmimic.annotations.ResponseBody;
+import com.iimmersao.springmimic.annotations.RestController;
 import com.iimmersao.springmimic.core.ApplicationContext;
 import com.iimmersao.springmimic.openapi.MethodParameter;
 
@@ -16,7 +18,16 @@ public class RouteHandlerFactory {
         this.context = context;
     }
 
-    public RouteHandler create(String method, String path, Object handlerInstance, Method handlerMethod, List<MethodParameter> parameters) {
-        return new RouteHandler(path, handlerInstance, handlerMethod, parameters, context);
+    public RouteHandler create(String method,
+                               String path,
+                               Object handlerInstance,
+                               Method handlerMethod,
+                               List<MethodParameter> parameters) {
+        boolean responseBodyPresent =
+                handlerMethod.isAnnotationPresent(ResponseBody.class)
+                        || handlerMethod.getDeclaringClass().isAnnotationPresent(ResponseBody.class)
+                        || handlerMethod.getDeclaringClass().isAnnotationPresent(RestController.class);
+
+        return new RouteHandler(path, handlerInstance, handlerMethod, parameters, context, responseBodyPresent);
     }
 }

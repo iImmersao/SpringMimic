@@ -33,12 +33,9 @@ class WebServerTest {
     @BeforeAll
     static void startServer() throws Exception {
         ApplicationContext context = new ApplicationContext("com.iimmersao.springmimic.testcomponents");
-        context.initialize(null);
-        context.injectDependencies();
-
-        ApplicationContext realContext = new ApplicationContext("com.iimmersao.springmimic");
         ConfigLoader config = new ConfigLoader();
-        realContext.registerBean(ConfigLoader.class, config);
+        context.registerBean(ConfigLoader.class, config);
+
         // Create the appropriate DatabaseClient
         DatabaseClient databaseClient;
         String dbType = config.get("db.type", "mysql").toLowerCase();
@@ -47,7 +44,13 @@ class WebServerTest {
             case "mysql" -> databaseClient = new MySqlDatabaseClient(config);
             default -> throw new IllegalArgumentException("Unsupported database type: " + dbType);
         }
-        realContext.registerBean(DatabaseClient.class, databaseClient);
+        context.registerDatabaseBean(DatabaseClient.class, databaseClient);
+        context.initialize(null);
+
+        ApplicationContext realContext = new ApplicationContext("com.iimmersao.springmimic");
+        realContext.registerBean(ConfigLoader.class, config);
+
+        realContext.registerDatabaseBean(DatabaseClient.class, databaseClient);
         realContext.registerBean(ApplicationContext.class, context); // Move to constructor?
         Port portToUse = new Port(config.getInt("server.port", port));
         realContext.registerBean(Port.class, portToUse);
@@ -57,7 +60,12 @@ class WebServerTest {
         Router router = realContext.getBean(Router.class);
         router.registerControllers(context.getControllers());
         realContext.injectDependencies();
-        server = realContext.getBean(WebServer.class);
+
+        context.registerBean(ApplicationContext.class, realContext);
+        context.addComponents(realContext);
+        context.injectDependencies();
+
+        server = context.getBean(WebServer.class);
         server.start(1000, false);
 
         // Give the server a moment to bind the port
@@ -77,8 +85,11 @@ class WebServerTest {
         int responseCode = conn.getResponseCode();
         String response = new Scanner(conn.getInputStream()).useDelimiter("\\A").next();
 
+        String contentType = conn.getContentType();
+
         assertEquals(200, responseCode);
-        assertEquals("\"Echo: hello\"", response);
+        assertEquals("text/plain", contentType);
+        assertEquals("Echo: hello", response);
     }
 
     @Test
@@ -96,8 +107,11 @@ class WebServerTest {
         int responseCode = conn.getResponseCode();
         String response = new Scanner(conn.getInputStream()).useDelimiter("\\A").next();
 
+        String contentType = conn.getContentType();
+
         assertEquals(200, responseCode);
-        assertEquals("\"Received: Philip\"", response);
+        assertEquals("text/plain", contentType);
+        assertEquals("Received: Philip", response);
     }
 
     @Test
@@ -109,8 +123,10 @@ class WebServerTest {
         int responseCode = conn.getResponseCode();
         String response = new Scanner(conn.getInputStream()).useDelimiter("\\A").next();
 
+        String contentType = conn.getContentType();
         assertEquals(200, responseCode);
-        assertEquals("\"Details for ID=123, verbose=true\"", response);
+        assertEquals("text/plain", contentType);
+        assertEquals("Details for ID=123, verbose=true", response);
     }
 
     @Test
@@ -141,9 +157,11 @@ class WebServerTest {
 
         int responseCode = conn.getResponseCode();
         String response = new Scanner(conn.getInputStream()).useDelimiter("\\A").next();
+        String contentType = conn.getContentType();
 
         assertEquals(200, responseCode);
-        assertEquals("\"Post=42, Comment=7\"", response);
+        assertEquals("text/plain", contentType);
+        assertEquals("Post=42, Comment=7", response);
     }
 
     @Test

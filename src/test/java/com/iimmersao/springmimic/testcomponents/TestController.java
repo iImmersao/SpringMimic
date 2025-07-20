@@ -1,9 +1,13 @@
 package com.iimmersao.springmimic.testcomponents;
 
 import com.iimmersao.springmimic.annotations.*;
+import com.iimmersao.springmimic.service.UserService;
 
 @Controller
 public class TestController {
+
+    @Inject
+    private UserService userService;
 
     public static class User {
         private String name;

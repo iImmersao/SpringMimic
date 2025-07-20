@@ -1,5 +1,7 @@
 package com.iimmersao.springmimic.routing;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.iimmersao.springmimic.annotations.*;
 import com.iimmersao.springmimic.core.ApplicationContext;
 import com.iimmersao.springmimic.security.Authenticator;
@@ -28,18 +30,22 @@ public class RouteHandler {
     private final Method method;
     private final List<MethodParameter> params;
     private final ApplicationContext context;
+    private final boolean responseBodyPresent;
 
     private final String routePath;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final XmlMapper xmlMapper = new XmlMapper();
 
     public RouteHandler(String routePath, Object controllerInstance, Method method,
-                        List<MethodParameter> params, ApplicationContext context) {
+                        List<MethodParameter> params, ApplicationContext context,
+                        boolean responseBodyPresent) {
         this.controllerInstance = controllerInstance;
         this.method = method;
         this.routePath = routePath;
         this.params = params;
         this.context = context;
+        this.responseBodyPresent = responseBodyPresent;
     }
 
     // Compiles route like /users/{id}/posts/{postId} into regex and records var names
@@ -231,39 +237,63 @@ public class RouteHandler {
             // Invoke and serialize result
             Object result = method.invoke(controllerInstance, args);
 
-            if (method.isAnnotationPresent(ResponseBody.class)) {
-                String body;
-                if (result == null) {
-                    body = "";
-                } else if (result instanceof String) {
-                    body = (String) result;
-                } else {
-                    body = objectMapper.writeValueAsString(result); // JSON
-                }
-
-                return NanoHTTPD.newFixedLengthResponse(Response.Status.OK, "application/json", body);
-            } else {
-                // Check for @Produces on the method
-                Produces produces = method.getAnnotation(Produces.class);
-
-                if (produces != null && "application/json".equalsIgnoreCase(produces.value())) {
-                    String json = new ObjectMapper().writeValueAsString(result);
-                    return NanoHTTPD.newFixedLengthResponse(
-                            NanoHTTPD.Response.Status.OK,
-                            "application/json",
-                            json
-                    );
-                }
-
-                String json = objectMapper.writeValueAsString(result);
-                return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, "application/json", json);
+            if (responseBodyPresent) {
+                return createSerializedResponse(result, method);
             }
+
+            // If not marked with @ResponseBody/@RestController, maybe still annotated with @Produces
+            Produces produces = method.getAnnotation(Produces.class);
+            if (produces != null && isStructuredMediaType(produces.value())) {
+                return createSerializedResponse(result, method);
+            }
+
+            // Otherwise, assume it's a plain text or manually constructed response
+            if (result instanceof NanoHTTPD.Response) {
+                return (NanoHTTPD.Response) result;
+            }
+
+            return NanoHTTPD.newFixedLengthResponse(
+                    NanoHTTPD.Response.Status.OK,
+                    "text/plain",
+                    result != null ? result.toString() : ""
+            );
 
         } catch (InvocationTargetException e) {
             return ExceptionHandler.handle((Exception) e.getTargetException());
         } catch (Exception e) {
             return ExceptionHandler.handle(e);
         }
+    }
+
+    private NanoHTTPD.Response createSerializedResponse(Object result, Method method) throws JsonProcessingException {
+        Produces produces = method.getAnnotation(Produces.class);
+        String mediaType;
+
+        if (produces == null && result instanceof String) {
+            mediaType = "text/plain";
+        } else {
+            mediaType = produces != null ? produces.value() : "application/json";
+        }
+
+        String body;
+        if (result == null) {
+            body = "";
+        } else if (result instanceof String && mediaType.equalsIgnoreCase("text/plain")) {
+            body = (String) result;
+        } else if (mediaType.equalsIgnoreCase("application/xml")) {
+            // Example XML serialization
+            body = xmlMapper.writeValueAsString(result); // You must have a configured XmlMapper instance
+        } else {
+            body = objectMapper.writeValueAsString(result);
+        }
+
+        return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, mediaType, body);
+    }
+
+    private boolean isStructuredMediaType(String mediaType) {
+        return "application/json".equalsIgnoreCase(mediaType)
+                || "application/xml".equalsIgnoreCase(mediaType)
+                || "text/xml".equalsIgnoreCase(mediaType);
     }
 
     private Object convertValue(String raw, Class<?> type, String name) {

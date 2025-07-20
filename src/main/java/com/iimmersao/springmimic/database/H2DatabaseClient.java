@@ -1,5 +1,6 @@
 package com.iimmersao.springmimic.database;
 
+import com.iimmersao.springmimic.annotations.Bean;
 import com.iimmersao.springmimic.annotations.Entity;
 import com.iimmersao.springmimic.annotations.Table;
 import com.iimmersao.springmimic.core.ConfigLoader;
@@ -8,9 +9,10 @@ import com.iimmersao.springmimic.web.PageRequest;
 
 import java.lang.reflect.Field;
 import java.sql.*;
-        import java.util.*;
-        import java.util.stream.Collectors;
+import java.util.*;
+import java.util.stream.Collectors;
 
+@Bean
 public class H2DatabaseClient implements DatabaseClient {
 
     private final String url;

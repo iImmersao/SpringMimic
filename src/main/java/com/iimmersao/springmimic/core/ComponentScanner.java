@@ -1,16 +1,12 @@
 package com.iimmersao.springmimic.core;
 
-import com.iimmersao.springmimic.annotations.Repository;
-import com.iimmersao.springmimic.annotations.Service;
+import com.iimmersao.springmimic.annotations.*;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ScanResult;
 
 import java.lang.annotation.Annotation;
 import java.util.HashSet;
 import java.util.Set;
-
-import com.iimmersao.springmimic.annotations.Component;
-import com.iimmersao.springmimic.annotations.Controller;
 
 public class ComponentScanner {
 
@@ -33,6 +29,9 @@ public class ComponentScanner {
             Set<Class<?>> controllerClasses = new HashSet<>(scanResult.getClassesWithAnnotation(Controller.class.getName())
                     .loadClasses());
 
+            Set<Class<?>> restControllerClasses = new HashSet<>(scanResult.getClassesWithAnnotation(RestController.class.getName())
+                    .loadClasses());
+
             Set<Class<?>> serviceClasses = new HashSet<>(scanResult.getClassesWithAnnotation(Service.class.getName())
                     .loadClasses());
 
@@ -41,6 +40,7 @@ public class ComponentScanner {
 
             // Combine them into one set
             componentClasses.addAll(controllerClasses);
+            componentClasses.addAll(restControllerClasses);
             componentClasses.addAll(serviceClasses);
             componentClasses.addAll(repositoryClasses);
             return componentClasses;

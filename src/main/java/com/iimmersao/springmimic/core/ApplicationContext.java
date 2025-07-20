@@ -85,6 +85,7 @@ public class ApplicationContext {
     private boolean isComponentClass(Class<?> clazz) {
         return clazz.isAnnotationPresent(Component.class)
                 || clazz.isAnnotationPresent(Controller.class)
+                || clazz.isAnnotationPresent(RestController.class)
                 || clazz.isAnnotationPresent(Service.class)
                 || clazz.isAnnotationPresent(Repository.class);
     }
@@ -192,7 +193,8 @@ public class ApplicationContext {
     public Collection<Object> getAllControllers() {
         List<Object> controllers = new ArrayList<>();
         for (Object obj : components.values()) {
-            if (obj.getClass().isAnnotationPresent(Controller.class)) {
+            if (obj.getClass().isAnnotationPresent(Controller.class)
+                    || obj.getClass().isAnnotationPresent(RestController.class)) {
                 controllers.add(obj);
             }
         }
@@ -201,7 +203,10 @@ public class ApplicationContext {
 
     public List<Object> getControllers() {
         return components.values().stream()
-                .filter(bean -> bean.getClass().isAnnotationPresent(Controller.class))
+                .filter(bean -> {
+                    return bean.getClass().isAnnotationPresent(Controller.class)
+                            || bean.getClass().isAnnotationPresent(RestController.class);
+                })
                 .collect(Collectors.toList());
     }
 
@@ -210,6 +215,11 @@ public class ApplicationContext {
         allBeans.putAll(manualBeans);
         allBeans.putAll(components);
         return allBeans.values();
+    }
+
+    public void addComponents(ApplicationContext otherContext) {
+        this.manualBeans.putAll(otherContext.manualBeans);
+        this.manualBeans.putAll(otherContext.components);
     }
 
     public Collection<Object> getServices() {

@@ -2,6 +2,6 @@ package com.iimmersao.springmimic.annotations;
 
 import java.lang.annotation.*;
 
-@Target({ElementType.TYPE, ElementType.METHOD})
+@Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ResponseBody {}
+public @interface RestController {}

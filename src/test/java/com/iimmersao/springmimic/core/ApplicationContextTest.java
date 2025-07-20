@@ -25,7 +25,7 @@ class ApplicationContextTest {
         context.initialize(null);
         Collection<Object> components = context.getComponents();
 
-        assertEquals(4, components.size()); // ExampleService, FakeComponent, FakeController, TestController
+        assertEquals(7, components.size()); // ExampleService, FakeComponent, FakeController, TestController
     }
 
     @Test

@@ -25,7 +25,11 @@ public class RepositoryInvocationHandler implements InvocationHandler {
             case "findById":
                 return client.findById(entityType, args[0]);
             case "findAll":
-                return client.findAll(entityType);
+                if (args != null && args.length > 0 && args[0] instanceof PageRequest) {
+                    return client.findAll(entityType, (PageRequest) args[0]);
+                } else {
+                    return client.findAll(entityType);
+                }
             case "save":
                 Object arg = args[0];
                 if (arg == null) {
@@ -38,6 +42,9 @@ public class RepositoryInvocationHandler implements InvocationHandler {
                 return null;
             case "deleteById":
                 client.deleteById(entityType, args[0]);
+                return null;
+            case "deleteAll":
+                client.deleteAll(entityType);
                 return null;
         }
 
