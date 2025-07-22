@@ -30,7 +30,7 @@ public class UserRepositoryTest {
 
     @BeforeAll
     static void setUp() throws SQLException {
-        ConfigLoader configLoader = new ConfigLoader("application-h2.properties");  // load from test config or defaults
+        ConfigLoader configLoader = new ConfigLoader("h2");  // load from test config or defaults
         client = new H2DatabaseClient(configLoader); // or MySqlDatabaseClient, etc.
 
         String sql = """

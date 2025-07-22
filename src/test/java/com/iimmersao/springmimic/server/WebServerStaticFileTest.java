@@ -37,7 +37,7 @@ class WebServerStaticFileTest {
         Files.writeString(tempDir.resolve("about.html"), "<p>About Page</p>");
 
         // Inject ConfigLoader with custom static.dir
-        ConfigLoader config = new ConfigLoader("application.properties") {
+        ConfigLoader config = new ConfigLoader() {
             @Override
             public String get(String key) {
                 if ("static.dir".equals(key)) {

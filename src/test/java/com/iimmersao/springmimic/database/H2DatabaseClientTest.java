@@ -21,7 +21,7 @@ class H2DatabaseClientTest {
 
     @BeforeAll
     static void setup() throws SQLException {
-        ConfigLoader configLoader = new ConfigLoader("application-h2.properties"); // or your test config file path
+        ConfigLoader configLoader = new ConfigLoader("h2"); // or your test config file path
         client = new H2DatabaseClient(configLoader);
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);
              Statement stmt = conn.createStatement()) {
