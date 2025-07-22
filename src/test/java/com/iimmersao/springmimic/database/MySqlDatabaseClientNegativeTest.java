@@ -3,13 +3,12 @@ package com.iimmersao.springmimic.database;
 import com.iimmersao.springmimic.core.ConfigLoader;
 import com.iimmersao.springmimic.model.MySqlUser;
 
-import java.io.IOException;
-
+@SuppressWarnings(value = "unused")
 class MySqlDatabaseClientNegativeTest extends AbstractDatabaseClientNegativeTest {
 
     private final MySqlDatabaseClient mysqlClient = new MySqlDatabaseClient(new ConfigLoader());
 
-    MySqlDatabaseClientNegativeTest() throws IOException {
+    MySqlDatabaseClientNegativeTest() {
     }
 
     @Override

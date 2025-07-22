@@ -15,12 +15,14 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@SuppressWarnings(value = "unused")
 public class MySqlDatabaseClientTest {
 
     private DatabaseClient dbClient;
 
     @Entity
     @Table(name = "users")
+    @SuppressWarnings(value = "unused")
     public static class User {
         @Id
         @Column(name = "id")
@@ -40,7 +42,7 @@ public class MySqlDatabaseClientTest {
     }
 
     @BeforeAll
-    void init() throws Exception {
+    void init() {
         ConfigLoader configLoader = new ConfigLoader(); // or your test config file path
         dbClient = new MySqlDatabaseClient(configLoader);
     }
@@ -107,7 +109,7 @@ public class MySqlDatabaseClientTest {
     }
 
     @Test
-    void shouldReturnPagedResults() throws Exception {
+    void shouldReturnPagedResults() {
         // Arrange
         for (int i = 1; i <= 10; i++) {
             User user = new User();
@@ -128,7 +130,7 @@ public class MySqlDatabaseClientTest {
     }
 
     @Test
-    void shouldReturnSortedResults() throws Exception {
+    void shouldReturnSortedResults() {
         // Arrange
         String[] usernames = { "zeta", "alpha", "beta" };
         for (String name : usernames) {
@@ -152,7 +154,7 @@ public class MySqlDatabaseClientTest {
     }
 
     @Test
-    void shouldReturnFilteredResults() throws Exception {
+    void shouldReturnFilteredResults() {
         // Arrange
         User targetUser = new User();
         targetUser.username = "filterme";
@@ -178,7 +180,7 @@ public class MySqlDatabaseClientTest {
     }
 
     @Test
-    void shouldFindUsersByUsernameContains() throws Exception {
+    void shouldFindUsersByUsernameContains() {
         // Arrange
         User user1 = new User();
         user1.username = "alice_smith";

@@ -5,7 +5,6 @@ import com.iimmersao.springmimic.annotations.Component;
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 
 @Component
@@ -18,7 +17,7 @@ public class ConfigLoader {
         loadProperties();
     }
 
-    public ConfigLoader(String filename) throws IOException {
+    public ConfigLoader(String filename) {
         this.configFileName = filename;
         loadProperties();
     }

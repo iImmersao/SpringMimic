@@ -6,6 +6,7 @@ import java.util.Objects;
 
 @Entity
 @Table(name = "users")
+@SuppressWarnings(value = "unused")
 public class H2User {
     @Id
     @GeneratedValue

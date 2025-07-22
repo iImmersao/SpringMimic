@@ -56,7 +56,6 @@ public class H2DatabaseClient implements DatabaseClient {
     }
 
     private String getTableName(Class<?> clazz) {
-        //return clazz.getSimpleName().toLowerCase(); // e.g. H2User -> h2user
         if (!clazz.isAnnotationPresent(Entity.class)) {
             throw new DatabaseException("Missing @Entity annotation on class: " + clazz.getName());
         }

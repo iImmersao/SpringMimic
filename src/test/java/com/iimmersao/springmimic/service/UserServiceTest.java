@@ -16,15 +16,16 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
 
+@SuppressWarnings(value = "unused")
 public class UserServiceTest {
 
-    static int port = 9999;
+    static final int port = 9999;
 
     @Inject
     private static UserService userService;
 
     @BeforeAll
-    static void createService() throws Exception {
+    static void createService() {
         ApplicationContext context = new ApplicationContext("com.iimmersao.springmimic.testcomponents");
         ConfigLoader config = new ConfigLoader();
         context.registerBean(ConfigLoader.class, config);

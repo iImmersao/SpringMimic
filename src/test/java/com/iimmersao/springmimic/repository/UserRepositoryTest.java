@@ -11,7 +11,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -20,6 +19,7 @@ import java.sql.Statement;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+@SuppressWarnings(value = "unused")
 public class UserRepositoryTest {
 
     private static DatabaseClient client;
@@ -29,7 +29,7 @@ public class UserRepositoryTest {
     private static final String PASSWORD = "password";
 
     @BeforeAll
-    static void setUp() throws IOException, SQLException {
+    static void setUp() throws SQLException {
         ConfigLoader configLoader = new ConfigLoader("application-h2.properties");  // load from test config or defaults
         client = new H2DatabaseClient(configLoader); // or MySqlDatabaseClient, etc.
 

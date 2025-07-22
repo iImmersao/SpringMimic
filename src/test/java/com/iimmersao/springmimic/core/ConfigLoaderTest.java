@@ -3,16 +3,15 @@ package com.iimmersao.springmimic.core;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
-
 import static org.junit.jupiter.api.Assertions.*;
 
+@SuppressWarnings(value = "unused")
 class ConfigLoaderTest {
 
     private ConfigLoader configLoader;
 
     @BeforeEach
-    public void setUp() throws IOException {
+    public void setUp() {
         configLoader = new ConfigLoader(); // or your test config file path
     }
 

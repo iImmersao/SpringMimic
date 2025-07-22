@@ -4,6 +4,7 @@ import com.iimmersao.springmimic.annotations.*;
 
 @Entity
 @Table(name = "users")
+@SuppressWarnings(value = "unused")
 public class MySqlUser {
     @Id
     @GeneratedValue

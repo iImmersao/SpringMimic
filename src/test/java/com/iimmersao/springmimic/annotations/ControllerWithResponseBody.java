@@ -4,11 +4,12 @@ import com.iimmersao.springmimic.model.H2User;
 
 @Controller
 @ResponseBody
+@SuppressWarnings(value = "unused")
 public class ControllerWithResponseBody {
 
-    @GetMapping("/respbodyplaintext")
-    public String plainText() {
-        return "hello";
+    @GetMapping("/respbodyplaintext/{name}")
+    public String plainText(@PathVariable("name") String name) {
+        return "hello " + name;
     }
 
     @GetMapping("/respbodyjson")

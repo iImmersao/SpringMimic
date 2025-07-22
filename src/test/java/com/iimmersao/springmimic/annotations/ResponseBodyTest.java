@@ -16,6 +16,7 @@ import java.net.URI;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@SuppressWarnings(value = "unused")
 class ResponseBodyTest {
 
     private static final String BASE_URL = "http://localhost:8080";
@@ -63,7 +64,7 @@ class ResponseBodyTest {
     @Test
     void testPlainTextResponse() throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/plaintext"))
+                .uri(URI.create(BASE_URL + "/plaintext/john"))
                 .GET()
                 .build();
 
@@ -71,7 +72,7 @@ class ResponseBodyTest {
 
         assertEquals(200, response.statusCode());
         assertEquals("text/plain", response.headers().firstValue("Content-Type").orElse(""));
-        assertEquals("hello", response.body());
+        assertEquals("hello john", response.body());
     }
 
     @Test
@@ -109,7 +110,7 @@ class ResponseBodyTest {
     @Test
     void testRestPlainTextResponse() throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/restplaintext"))
+                .uri(URI.create(BASE_URL + "/restplaintext/john"))
                 .GET()
                 .build();
 
@@ -117,7 +118,7 @@ class ResponseBodyTest {
 
         assertEquals(200, response.statusCode());
         assertEquals("text/plain", response.headers().firstValue("Content-Type").orElse(""));
-        assertEquals("hello", response.body());
+        assertEquals("hello john", response.body());
     }
 
     @Test
@@ -155,7 +156,7 @@ class ResponseBodyTest {
     @Test
     void testRespBodyPlainTextResponse() throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/respbodyplaintext"))
+                .uri(URI.create(BASE_URL + "/respbodyplaintext/john"))
                 .GET()
                 .build();
 
@@ -163,7 +164,7 @@ class ResponseBodyTest {
 
         assertEquals(200, response.statusCode());
         assertEquals("text/plain", response.headers().firstValue("Content-Type").orElse(""));
-        assertEquals("hello", response.body());
+        assertEquals("hello john", response.body());
     }
 
     @Test

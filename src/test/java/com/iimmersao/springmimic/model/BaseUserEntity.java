@@ -1,5 +1,6 @@
 package com.iimmersao.springmimic.model;
 
+@SuppressWarnings(value = "unused")
 public interface BaseUserEntity<ID> {
     ID getId();
     void setId(ID id);

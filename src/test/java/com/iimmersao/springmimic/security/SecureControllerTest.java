@@ -11,14 +11,16 @@ import com.iimmersao.springmimic.routing.Router;
 import com.iimmersao.springmimic.server.WebServer;
 import org.junit.jupiter.api.*;
 
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpResponse;
 import java.util.Base64;
-import java.util.Scanner;
-
+import java.net.URI;
+import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.Builder;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@SuppressWarnings(value = "unused")
 public class SecureControllerTest {
 
     private static WebServer server;
@@ -60,21 +62,17 @@ public class SecureControllerTest {
         System.out.println("Test server stopped");
     }
 
-    private HttpURLConnection createConnection(String path, String method, String authHeader) throws Exception {
-        URL url = new URL("http://localhost:" + port + path);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestMethod(method);
-        if (authHeader != null) {
-            conn.setRequestProperty("Authorization", authHeader);
-        }
-        return conn;
-    }
+    private HttpRequest createRequest(String path, String method, String authHeader) {
+        URI uri = URI.create("http://localhost:" + port + path);
+        Builder requestBuilder = HttpRequest.newBuilder()
+                .uri(uri)
+                .method(method.toUpperCase(), HttpRequest.BodyPublishers.noBody());
 
-    private String readResponse(HttpURLConnection conn) throws Exception {
-        Scanner scanner = new Scanner(
-                (conn.getResponseCode() >= 400 ? conn.getErrorStream() : conn.getInputStream())
-        ).useDelimiter("\\A");
-        return scanner.hasNext() ? scanner.next() : "";
+        if (authHeader != null) {
+            requestBuilder.header("Authorization", authHeader);
+        }
+
+        return requestBuilder.build();
     }
 
     private String encodeBasicAuth(String username, String password) {
@@ -84,51 +82,51 @@ public class SecureControllerTest {
 
     @Test
     void shouldAllowAccessWithValidCredentials() throws Exception {
-        HttpURLConnection conn = createConnection("/secure", "GET", encodeBasicAuth("user", "user123"));
-        int responseCode = conn.getResponseCode();
-        String response = readResponse(conn);
+        HttpRequest request = createRequest("/secure", "GET", encodeBasicAuth("user", "user123"));
+        HttpClient client = HttpClient.newHttpClient();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        assertEquals(200, responseCode);
-        assertTrue(response.contains("authenticated"));
+        assertEquals(200, response.statusCode());
+        assertTrue(response.body().contains("authenticated"));
     }
 
     @Test
     void shouldDenyAccessWithoutAuthHeader() throws Exception {
-        HttpURLConnection conn = createConnection("/secure", "GET", null);
-        int responseCode = conn.getResponseCode();
-        String response = readResponse(conn);
+        HttpRequest request = createRequest("/secure", "GET", null);
+        HttpClient client = HttpClient.newHttpClient();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        assertEquals(401, responseCode);
-        assertTrue(response.toLowerCase().contains("missing or invalid authorization header"));
+        assertEquals(401, response.statusCode());
+        assertTrue(response.body().toLowerCase().contains("missing or invalid authorization header"));
     }
 
     @Test
     void shouldDenyAccessWithInvalidCredentials() throws Exception {
-        HttpURLConnection conn = createConnection("/secure", "GET", encodeBasicAuth("bad", "badpass"));
-        int responseCode = conn.getResponseCode();
-        String response = readResponse(conn);
+        HttpRequest request = createRequest("/secure", "GET", encodeBasicAuth("bad", "badpass"));
+        HttpClient client = HttpClient.newHttpClient();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        assertEquals(401, responseCode);
-        assertTrue(response.toLowerCase().contains("unauthorized"));
+        assertEquals(401, response.statusCode());
+        assertTrue(response.body().toLowerCase().contains("unauthorized"));
     }
 
     @Test
     void shouldDenyAccessToAdminEndpointForUserRole() throws Exception {
-        HttpURLConnection conn = createConnection("/admin", "GET", encodeBasicAuth("user", "user123"));
-        int responseCode = conn.getResponseCode();
-        String response = readResponse(conn);
+        HttpRequest request = createRequest("/admin", "GET", encodeBasicAuth("user", "user123"));
+        HttpClient client = HttpClient.newHttpClient();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        assertEquals(403, responseCode);
-        assertTrue(response.toLowerCase().contains("forbidden"));
+        assertEquals(403, response.statusCode());
+        assertTrue(response.body().toLowerCase().contains("forbidden"));
     }
 
     @Test
     void shouldAllowAccessToAdminEndpointWithAdminRole() throws Exception {
-        HttpURLConnection conn = createConnection("/admin", "GET", encodeBasicAuth("admin", "admin123"));
-        int responseCode = conn.getResponseCode();
-        String response = readResponse(conn);
+        HttpRequest request = createRequest("/admin", "GET", encodeBasicAuth("admin", "admin123"));
+        HttpClient client = HttpClient.newHttpClient();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        assertEquals(200, responseCode);
-        assertTrue(response.toLowerCase().contains("admin"));
+        assertEquals(200, response.statusCode());
+        assertTrue(response.body().toLowerCase().contains("admin"));
     }
 }

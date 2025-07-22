@@ -4,6 +4,7 @@ import com.iimmersao.springmimic.annotations.*;
 import com.iimmersao.springmimic.service.UserService;
 
 @Controller
+@SuppressWarnings(value = "unused")
 public class TestController {
 
     @Inject

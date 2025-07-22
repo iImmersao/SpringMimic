@@ -5,13 +5,13 @@ import com.iimmersao.springmimic.model.H2User;
 import com.iimmersao.springmimic.web.PageRequest;
 import org.junit.jupiter.api.*;
 
-import java.io.IOException;
 import java.sql.*;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@SuppressWarnings(value = "unused")
 class H2DatabaseClientTest {
 
     private static DatabaseClient client;
@@ -20,7 +20,7 @@ class H2DatabaseClientTest {
     private static final String PASSWORD = "password";
 
     @BeforeAll
-    static void setup() throws SQLException, IOException {
+    static void setup() throws SQLException {
         ConfigLoader configLoader = new ConfigLoader("application-h2.properties"); // or your test config file path
         client = new H2DatabaseClient(configLoader);
         try (Connection conn = DriverManager.getConnection(JDBC_URL, USER, PASSWORD);

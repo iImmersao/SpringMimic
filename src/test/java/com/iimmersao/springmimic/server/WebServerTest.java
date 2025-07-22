@@ -12,21 +12,18 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
 import java.net.URI;
-import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.Scanner;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@SuppressWarnings(value = "unused")
 class WebServerTest {
 
     static WebServer server;
-    static int port = 9999;
+    final static int port = 9999;
 
     private final HttpClient client = HttpClient.newHttpClient();
 
@@ -77,56 +74,72 @@ class WebServerTest {
         server.stop();
     }
 
+    private HttpRequest createRequest(String path, String method, String contentType, String body) {
+        URI uri = URI.create(path);
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                .uri(uri);
+
+        if (contentType != null) {
+            requestBuilder.header("Content-Type", contentType);
+        }
+
+        if ("GET".equals(method)) {
+            requestBuilder.method(method.toUpperCase(), HttpRequest.BodyPublishers.noBody());
+        }
+
+        if ("POST".equals(method) && body != null) {
+            requestBuilder.POST(HttpRequest.BodyPublishers.ofString(body));
+        }
+
+        return requestBuilder.build();
+    }
+
     @Test
     void shouldHandleGetRequest() throws Exception {
-        HttpURLConnection conn = (HttpURLConnection) new URL("http://localhost:" + port + "/echo/hello").openConnection();
-        conn.setRequestMethod("GET");
+        HttpRequest request = createRequest("http://localhost:" + port + "/echo/hello", "GET",
+                null, null);
+        HttpClient client = HttpClient.newHttpClient();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        int responseCode = conn.getResponseCode();
-        String response = new Scanner(conn.getInputStream()).useDelimiter("\\A").next();
-
-        String contentType = conn.getContentType();
-
-        assertEquals(200, responseCode);
-        assertEquals("text/plain", contentType);
-        assertEquals("Echo: hello", response);
+        assertEquals(200, response.statusCode());
+        assertEquals("text/plain", response.headers().firstValue("Content-Type").orElse(""));
+        assertEquals("Echo: hello", response.body());
     }
 
     @Test
     void shouldHandlePostJson() throws Exception {
-        HttpURLConnection conn = (HttpURLConnection) new URL("http://localhost:" + port + "/json").openConnection();
-        conn.setRequestMethod("POST");
-        conn.setDoOutput(true);
-        conn.setRequestProperty("Content-Type", "application/json");
-
         String body = "{\"name\":\"Philip\"}";
-        try (OutputStream os = conn.getOutputStream()) {
-            os.write(body.getBytes());
-        }
+        HttpClient client = HttpClient.newHttpClient();
 
-        int responseCode = conn.getResponseCode();
-        String response = new Scanner(conn.getInputStream()).useDelimiter("\\A").next();
+        HttpRequest request = createRequest("http://localhost:" + port + "/json", "POST",
+                "application/json", body);
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        String contentType = conn.getContentType();
+        int responseCode = response.statusCode();
+        String responseBody = response.body();
+        String contentType = response.headers().firstValue("Content-Type").orElse("");
 
         assertEquals(200, responseCode);
         assertEquals("text/plain", contentType);
-        assertEquals("Received: Philip", response);
+        assertEquals("Received: Philip", responseBody);
     }
 
     @Test
     void shouldHandleQueryParamsCorrectly() throws Exception {
-        String url = "http://localhost:" + port + "/user/details?id=123&verbose=true&max=100";
-        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
-        conn.setRequestMethod("GET");
+        String body = "{\"name\":\"Philip\"}";
+        HttpClient client = HttpClient.newHttpClient();
 
-        int responseCode = conn.getResponseCode();
-        String response = new Scanner(conn.getInputStream()).useDelimiter("\\A").next();
+        HttpRequest request = createRequest("http://localhost:" + port + "/user/details?id=123&verbose=true&max=100",
+                "GET","application/json", body);
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        String contentType = conn.getContentType();
+        int responseCode = response.statusCode();
+        String responseBody = response.body();
+        String contentType = response.headers().firstValue("Content-Type").orElse("");
+
         assertEquals(200, responseCode);
         assertEquals("text/plain", contentType);
-        assertEquals("Details for ID=123, verbose=true", response);
+        assertEquals("Details for ID=123, verbose=true", responseBody);
     }
 
     @Test
@@ -151,28 +164,24 @@ class WebServerTest {
 
     @Test
     void shouldHandleMultiplePathVariables() throws Exception {
-        String url = "http://localhost:" + port + "/posts/42/comments/7";
-        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
-        conn.setRequestMethod("GET");
+        HttpRequest request = createRequest("http://localhost:" + port + "/posts/42/comments/7", "GET",
+                null, null);
+        HttpClient client = HttpClient.newHttpClient();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        int responseCode = conn.getResponseCode();
-        String response = new Scanner(conn.getInputStream()).useDelimiter("\\A").next();
-        String contentType = conn.getContentType();
-
-        assertEquals(200, responseCode);
-        assertEquals("text/plain", contentType);
-        assertEquals("Post=42, Comment=7", response);
+        assertEquals(200, response.statusCode());
+        assertEquals("text/plain", response.headers().firstValue("Content-Type").orElse(""));
+        assertEquals("Post=42, Comment=7", response.body());
     }
 
     @Test
     void shouldReturnNotFoundForUnknownRoute() throws Exception {
-        String url = "http://localhost:" + port + "/not-a-route";
-        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
-        conn.setRequestMethod("GET");
+        HttpRequest request = createRequest("http://localhost:" + port + "/not-a-route", "GET",
+                null, null);
+        HttpClient client = HttpClient.newHttpClient();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        int responseCode = conn.getResponseCode();
-
-        assertEquals(404, responseCode);
+        assertEquals(404, response.statusCode());
     }
 
     @Test
@@ -219,31 +228,29 @@ class WebServerTest {
 
     @Test
     void shouldReturnBadRequestForMalformedJson() throws Exception {
-        HttpURLConnection conn = (HttpURLConnection) new URL("http://localhost:" + port + "/json").openConnection();
-        conn.setRequestMethod("POST");
-        conn.setDoOutput(true);
-        conn.setRequestProperty("Content-Type", "application/json");
+        String body = "{\"name\": }";
+        HttpClient client = HttpClient.newHttpClient();
 
-        String badJson = "{\"name\": }";  // malformed JSON
-        try (OutputStream os = conn.getOutputStream()) {
-            os.write(badJson.getBytes());
-        }
+        HttpRequest request = createRequest("http://localhost:" + port + "/json", "POST",
+                "application/json", body);
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        int responseCode = conn.getResponseCode();
-        String response = new Scanner(conn.getErrorStream()).useDelimiter("\\A").next();
+        int responseCode = response.statusCode();
+        String responseBody = response.body();
+        String contentType = response.headers().firstValue("Content-Type").orElse("");
 
         assertEquals(400, responseCode);
-        assertTrue(response.contains("Invalid request body"), response);
+        assertTrue(responseBody.contains("Invalid request body"));
     }
 
     @Test
     void shouldReturnMethodNotAllowedForWrongHttpMethod() throws Exception {
-        HttpURLConnection conn = (HttpURLConnection) new URL("http://localhost:" + port + "/json").openConnection();
-        conn.setRequestMethod("GET"); // Should be POST
+        HttpRequest request = createRequest("http://localhost:" + port + "/json", "GET",
+                null, null);
+        HttpClient client = HttpClient.newHttpClient();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        int responseCode = conn.getResponseCode();
-
-        assertEquals(404, responseCode); // Framework uses 404 for method mismatch
+        assertEquals(404, response.statusCode());
     }
 
     @Test

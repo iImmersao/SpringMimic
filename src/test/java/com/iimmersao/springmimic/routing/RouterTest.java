@@ -11,11 +11,11 @@ import com.iimmersao.springmimic.database.MySqlDatabaseClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@SuppressWarnings(value = "unused")
 public class RouterTest {
 
     static class TestController {
@@ -33,7 +33,7 @@ public class RouterTest {
     private Router router;
 
     @BeforeEach
-    void setUp() throws IOException {
+    void setUp() {
         ConfigLoader config = new ConfigLoader();
         String dbType = config.get("db.type", "mysql").toLowerCase();
 

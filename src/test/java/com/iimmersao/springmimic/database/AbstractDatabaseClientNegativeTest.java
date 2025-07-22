@@ -5,19 +5,19 @@ import com.iimmersao.springmimic.web.PageRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@SuppressWarnings(value="unused")
 abstract class AbstractDatabaseClientNegativeTest {
 
     protected abstract DatabaseClient client();
     protected abstract Class<?> getEntityClass();
 
     @BeforeEach
-    void setup() throws Exception {
+    void setup() {
         client().deleteAll(getEntityClass());
     }
 

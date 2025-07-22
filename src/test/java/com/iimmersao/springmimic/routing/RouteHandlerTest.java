@@ -16,10 +16,7 @@ import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -29,6 +26,7 @@ import static fi.iki.elonen.NanoHTTPD.Response;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@SuppressWarnings(value = "unused")
 public class RouteHandlerTest {
     static private RouteHandlerFactory routeHandlerFactory;
 
@@ -72,24 +70,26 @@ public class RouteHandlerTest {
     }
 
 
-    private NanoHTTPD.IHTTPSession createMockSession(String method, String uri, String bodyJson, String queryString) throws Exception {
+    private NanoHTTPD.IHTTPSession createMockSession(String method, String uri, String bodyJson, String queryString) {
         NanoHTTPD.IHTTPSession session = mock(NanoHTTPD.IHTTPSession.class);
         when(session.getMethod()).thenReturn(NanoHTTPD.Method.valueOf(method));
         when(session.getUri()).thenReturn(uri);
         when(session.getQueryParameterString()).thenReturn(queryString);
 
         if (queryString != null) {
-            Map<String, String> queryParams = new HashMap<>();
+            Map<String, List<String>> queryParams = new HashMap<>();
             for (String param : queryString.split("&")) {
                 String[] parts = param.split("=");
                 if (parts.length == 2) {
+                    List<String> values = new LinkedList<>();
+                    values.add(URLDecoder.decode(parts[1], StandardCharsets.UTF_8));
                     queryParams.put(URLDecoder.decode(parts[0], StandardCharsets.UTF_8),
-                            URLDecoder.decode(parts[1], StandardCharsets.UTF_8));
+                            values);
                 }
             }
-            when(session.getParms()).thenReturn(queryParams);
+            when(session.getParameters()).thenReturn(queryParams);
         } else {
-            when(session.getParms()).thenReturn(Collections.emptyMap());
+            when(session.getParameters()).thenReturn(Collections.emptyMap());
         }
 
         when(session.getHeaders()).thenReturn(

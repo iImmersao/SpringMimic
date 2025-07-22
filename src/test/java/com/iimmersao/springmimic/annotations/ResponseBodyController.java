@@ -3,12 +3,13 @@ package com.iimmersao.springmimic.annotations;
 import com.iimmersao.springmimic.model.H2User;
 
 @Controller
+@SuppressWarnings(value = "unused")
 public class ResponseBodyController {
 
-    @GetMapping("/plaintext")
+    @GetMapping("/plaintext/{name}")
     @ResponseBody
-    public String plainText() {
-        return "hello";
+    public String plainText(@PathVariable("name") String name) {
+        return "hello " + name;
     }
 
     @GetMapping("/json")

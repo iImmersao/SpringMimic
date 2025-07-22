@@ -27,11 +27,11 @@ public class UserService {
     @Inject
     private DatabaseClient databaseClient;
 
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
-    private ConfigLoader config;
+    private final ConfigLoader config;
 
-    private String dbType;
+    private final String dbType;
 
     public UserService(
             MySqlUserRepository mySqlUserRepository,
@@ -57,31 +57,19 @@ public class UserService {
     }
 
     private Class getEntityClass() {
-        return switch (getDbType()) {
+        return switch (dbType) {
             case "mysql" -> MySqlUserEntity.class;
             case "h2" -> H2UserEntity.class;
             case "mongodb" -> MongoUserEntity.class;
-            default -> throw new IllegalStateException("Unsupported db.type: " + getDbType());
+            default -> throw new IllegalStateException("Unsupported db.type: " + dbType);
         };
     }
 
-//    public User save(User dto) {
-//        Object entity = UserMapper.toEntity(dto, getDbType());
-//        databaseClient.save(entity);
-//        return UserMapper.toDTO(entity);
-//    }
-
     public UserDTO save(UserDTO dto) {
-        BaseUserEntity entity = UserMapper.toEntity(dto, getDbType());
+        BaseUserEntity entity = UserMapper.toEntity(dto, dbType);
         userRepository.save(entity);
         return UserMapper.toDTO(entity);
     }
-
-//    public Optional<User> findById(String id) {
-//        Object typedId = convertId(id);
-//        Optional<?> entityOpt = databaseClient.findById(getEntityClass(), typedId);
-//        return entityOpt.map(UserMapper::toDTO);
-//    }
 
     public Optional<UserDTO> findById(String id) {
         Object typedId = convertId(id);
@@ -91,11 +79,10 @@ public class UserService {
 
     // Convert String id to the appropriate type for the selected backend
     private Object convertId(String id) {
-        return switch (getDbType()) {
-            case "mysql" -> Integer.parseInt(id);
-            case "h2" -> Integer.parseInt(id);
+        return switch (dbType) {
+            case "mysql", "h2" -> Integer.parseInt(id);
             case "mongodb" -> id; // remains a String
-            default -> throw new IllegalStateException("Unsupported db.type: " + getDbType());
+            default -> throw new IllegalStateException("Unsupported db.type: " + dbType);
         };
     }
 }

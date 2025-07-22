@@ -1,7 +1,5 @@
 package com.iimmersao.springmimic.client;
 
-import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -13,6 +11,7 @@ import org.junit.jupiter.api.*;
 
 import java.nio.charset.StandardCharsets;
 
+@SuppressWarnings(value = "unused")
 class RestClientTest {
 
     private static TestServer server;
@@ -33,6 +32,7 @@ class RestClientTest {
     }
 
     // Simple DTO
+    @SuppressWarnings(value = "unused")
     public static class User {
         public final String name;
 
@@ -105,14 +105,11 @@ class RestClientTest {
         @Override
         public Response serve(IHTTPSession session) {
             String uri = session.getUri();
-            Method method = session.getMethod();
 
             try {
                 return switch (uri) {
                     case "/hello" -> newFixedLengthResponse("Hello World");
-                    case "/echo" -> withBodyEcho(session);
-                    case "/update" -> withBodyEcho(session);
-                    case "/modify" -> withBodyEcho(session);
+                    case "/echo", "/modify", "/update" -> withBodyEcho(session);
                     case "/remove" -> newFixedLengthResponse("Deleted");
                     case "/notfound" -> newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "Not found");
                     case "/error" ->

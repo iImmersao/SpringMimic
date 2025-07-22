@@ -2,7 +2,10 @@ package com.iimmersao.springmimic.controllers;
 
 import com.iimmersao.springmimic.annotations.*;
 
+import java.time.LocalDateTime;
+
 @Controller
+@SuppressWarnings(value = "unused")
 public class LifecycleDemo {
 
     @PostConstruct
@@ -17,6 +20,6 @@ public class LifecycleDemo {
 
     @GetMapping("/ping")
     public String ping() {
-        return "pong";
+        return "pong " + LocalDateTime.now();
     }
 }

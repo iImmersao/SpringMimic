@@ -10,6 +10,7 @@ import com.iimmersao.springmimic.routing.Router;
 import java.util.Map;
 
 @Controller
+@SuppressWarnings(value = "unused")
 public class OpenApiController {
 
     @Inject
@@ -17,7 +18,7 @@ public class OpenApiController {
 
     @GetMapping("/openapi.json")
     @Produces("application/json")
-    public Map<String, Object> getOpenApiSpec() throws Exception {
+    public Map<String, Object> getOpenApiSpec() {
         return OpenApiGenerator.generateOpenApiSpec(router);
     }
 }

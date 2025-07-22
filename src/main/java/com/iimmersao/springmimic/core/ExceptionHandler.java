@@ -37,7 +37,7 @@ public class ExceptionHandler {
         if (e instanceof JsonProcessingException) {
             String rootMessage = "Invalid request body";
             String details = e.getMessage(); // Jackson-specific message
-            log.warn(rootMessage + ": " + e.getMessage());
+            log.warn("{}: {}", rootMessage, e.getMessage());
             return createErrorResponse(NanoHTTPD.Response.Status.BAD_REQUEST, rootMessage, details);
         }
 

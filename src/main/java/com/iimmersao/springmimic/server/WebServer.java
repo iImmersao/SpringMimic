@@ -8,7 +8,6 @@ import com.iimmersao.springmimic.exceptions.RouteNotFoundException;
 import com.iimmersao.springmimic.routing.Port;
 import com.iimmersao.springmimic.routing.Router;
 import com.iimmersao.springmimic.routing.RouteMatch;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.iki.elonen.NanoHTTPD;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,11 +26,11 @@ public class WebServer extends NanoHTTPD {
 
     @Inject
     private final Router router;
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private File staticDir;
 
     @Inject
+    @SuppressWarnings(value = "unused")
     private ConfigLoader configLoader;
 
     public WebServer(Port port, Router router) {
@@ -51,9 +50,9 @@ public class WebServer extends NanoHTTPD {
                     ? Paths.get("").toAbsolutePath().resolve(staticPath).toFile()
                     : null;
             if (staticDir != null && staticDir.exists()) {
-                System.out.println("Static file directory: " + staticDir.getAbsolutePath());
+                log.info("Static file directory: {}", staticDir.getAbsolutePath());
             } else {
-                System.out.println("No static file directory configured or found.");
+                log.info("No static file directory configured or found.");
             }
         }
 
@@ -85,6 +84,7 @@ public class WebServer extends NanoHTTPD {
         }
     }
 
+    @SuppressWarnings(value = "unused")
     private String getMimeType(String uri) {
         if (uri.endsWith(".html")) return "text/html";
         if (uri.endsWith(".css")) return "text/css";

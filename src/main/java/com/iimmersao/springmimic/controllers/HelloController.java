@@ -3,6 +3,7 @@ package com.iimmersao.springmimic.controllers;
 import com.iimmersao.springmimic.annotations.*;
 
 @Controller
+@SuppressWarnings(value = "unused")
 public class HelloController {
 
     @GetMapping("/greet")

@@ -8,10 +8,9 @@ import java.util.Set;
 public class PageRequest {
 
     public static class Sort {
-        public String field;
-        public boolean ascending;
-
-
+        public final String field;
+        public final boolean ascending;
+        
         public Sort(String sortString) {
             if (sortString != null && sortString.contains(",")) {
                 String[] parts = sortString.split(",");

@@ -25,7 +25,8 @@ public class OpenApiGenerator {
             String method = entry.httpMethod().toLowerCase(); // e.g. get, post, etc.
             RouteHandler handler = entry.handler();
 
-            Map<String, Object> pathItem = (Map<String, Object>) paths.computeIfAbsent(path, k -> new LinkedHashMap<>());
+            Map<String, Object> pathItem = (Map<String, Object>) paths
+                    .computeIfAbsent(path, k -> new LinkedHashMap<>());
 
             Map<String, Object> operation = new LinkedHashMap<>();
             operation.put("summary", "Handler for " + entry.httpMethod() + " " + path);

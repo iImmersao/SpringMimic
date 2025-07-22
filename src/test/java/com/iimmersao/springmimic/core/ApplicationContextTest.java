@@ -6,6 +6,7 @@ import java.util.Collection;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@SuppressWarnings(value = "unused")
 class ApplicationContextTest {
 
     @Test

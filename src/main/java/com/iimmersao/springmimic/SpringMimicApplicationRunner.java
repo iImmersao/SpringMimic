@@ -4,7 +4,6 @@ import ch.qos.logback.classic.LoggerContext;
 import com.iimmersao.springmimic.annotations.ComponentScan;
 import com.iimmersao.springmimic.client.RestClient;
 import com.iimmersao.springmimic.core.ApplicationContext;
-import com.iimmersao.springmimic.core.ComponentScanner;
 import com.iimmersao.springmimic.core.ConfigLoader;
 import com.iimmersao.springmimic.database.DatabaseClient;
 import com.iimmersao.springmimic.database.H2DatabaseClient;
@@ -16,6 +15,8 @@ import com.iimmersao.springmimic.server.WebServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
+
+import java.util.Arrays;
 
 public class SpringMimicApplicationRunner {
 
@@ -90,6 +91,7 @@ public class SpringMimicApplicationRunner {
             System.out.println("Server started on port " + port);
             log.info("Application started with database: {}", config.get("db.type"));
             log.info("Environment: {}", config.get("env", "development"));
+            System.out.println("SpringMimic application " + config.get("server.name") + " started");
             // Allow main thread to be shut down by another thread.
             running = true;
 
@@ -103,7 +105,7 @@ public class SpringMimicApplicationRunner {
             }
         } catch (Exception e) {
             System.err.println("Application failed to start: " + e.getMessage());
-            e.printStackTrace();
+            log.error(Arrays.toString(e.getStackTrace()));
         }
     }
 

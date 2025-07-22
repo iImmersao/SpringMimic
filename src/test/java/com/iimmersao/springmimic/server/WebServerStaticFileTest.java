@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@SuppressWarnings(value = "unused")
 class WebServerStaticFileTest {
 
     private static Path tempDir;
@@ -44,7 +45,6 @@ class WebServerStaticFileTest {
                 } else {
                     return super.get(key);
                 }
-                //return null;
             }
         };
 

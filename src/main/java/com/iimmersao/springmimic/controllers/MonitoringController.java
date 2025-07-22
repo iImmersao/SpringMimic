@@ -6,6 +6,7 @@ import com.iimmersao.springmimic.annotations.GetMapping;
 import java.util.Map;
 
 @Controller
+@SuppressWarnings(value = "unused")
 public class MonitoringController {
 
     private final long startTime = System.currentTimeMillis();

@@ -5,16 +5,16 @@ import com.iimmersao.springmimic.model.TestMongoUser;
 import com.iimmersao.springmimic.web.PageRequest;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+@SuppressWarnings(value = "unused")
 class MongoDatabaseClientNegativeTest extends AbstractDatabaseClientNegativeTest {
 
     private final MongoDatabaseClient mongoClient = new MongoDatabaseClient(new ConfigLoader("application-mongodb.properties"));
 
-    MongoDatabaseClientNegativeTest() throws IOException {
+    MongoDatabaseClientNegativeTest() {
     }
 
     @Override

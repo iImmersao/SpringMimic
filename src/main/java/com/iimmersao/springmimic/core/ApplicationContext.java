@@ -33,15 +33,6 @@ public class ApplicationContext {
         registerBean(type, instance);
     }
 
-    public <T> void createAndRegisterBean(Class<T> type) {
-        if (type.isInterface()) {
-            // Interfaces such as @Repository can't be instantiated and should be handled later by a different means.
-            return;
-        }
-        Object o = createInstance(type);
-        registerBean(type, (T) o);
-    }
-
     @SuppressWarnings("unchecked")
     <T> void registerRepository(Class<?> repositoryInterface, Object proxy) {
         registerBean((Class<T>) repositoryInterface, (T) proxy);
@@ -100,20 +91,7 @@ public class ApplicationContext {
         }
 
         try {
-            Constructor<?>[] constructors = clazz.getConstructors();
-            Constructor<?> targetConstructor = null;
-
-            // Choose the constructor with the most parameters (simple strategy)
-            for (Constructor<?> ctor : constructors) {
-                if (targetConstructor == null ||
-                        ctor.getParameterCount() > targetConstructor.getParameterCount()) {
-                    targetConstructor = ctor;
-                }
-            }
-
-            if (targetConstructor == null) {
-                throw new IllegalStateException("No public constructor found for: " + clazz.getName());
-            }
+            Constructor<?> targetConstructor = getConstructor(clazz);
 
             // Resolve constructor parameters recursively
             Class<?>[] paramTypes = targetConstructor.getParameterTypes();
@@ -140,6 +118,24 @@ public class ApplicationContext {
         } catch (Exception e) {
             throw new RuntimeException("Failed to create instance of: " + clazz.getName(), e);
         }
+    }
+
+    private Constructor<?> getConstructor(Class<?> clazz) {
+        Constructor<?>[] constructors = clazz.getConstructors();
+        Constructor<?> targetConstructor = null;
+
+        // Choose the constructor with the most parameters (simple strategy)
+        for (Constructor<?> cons : constructors) {
+            if (targetConstructor == null ||
+                    cons.getParameterCount() > targetConstructor.getParameterCount()) {
+                targetConstructor = cons;
+            }
+        }
+
+        if (targetConstructor == null) {
+            throw new IllegalStateException("No public constructor found for: " + clazz.getName());
+        }
+        return targetConstructor;
     }
 
     private void injectDependencies(Object instance) {
@@ -189,24 +185,12 @@ public class ApplicationContext {
         }
         return type.cast(bean);
     }
-
-    public Collection<Object> getAllControllers() {
-        List<Object> controllers = new ArrayList<>();
-        for (Object obj : components.values()) {
-            if (obj.getClass().isAnnotationPresent(Controller.class)
-                    || obj.getClass().isAnnotationPresent(RestController.class)) {
-                controllers.add(obj);
-            }
-        }
-        return controllers;
-    }
-
+    
     public List<Object> getControllers() {
         return components.values().stream()
-                .filter(bean -> {
-                    return bean.getClass().isAnnotationPresent(Controller.class)
-                            || bean.getClass().isAnnotationPresent(RestController.class);
-                })
+                .filter(bean -> (bean.getClass().isAnnotationPresent(Controller.class)
+                            || bean.getClass().isAnnotationPresent(RestController.class))
+                )
                 .collect(Collectors.toList());
     }
 
@@ -224,10 +208,6 @@ public class ApplicationContext {
 
     public Collection<Object> getServices() {
         return getBeansWithAnnotation(Service.class);
-    }
-
-    public Collection<Object> getRepositories() {
-        return getBeansWithAnnotation(Repository.class);
     }
 
     private Collection<Object> getBeansWithAnnotation(Class<? extends Annotation> annotationClass) {

@@ -6,7 +6,6 @@ import com.iimmersao.springmimic.model.TestMongoUser;
 import com.iimmersao.springmimic.web.PageRequest;
 import org.junit.jupiter.api.*;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,12 +15,13 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.*;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@SuppressWarnings(value = "unused")
 public class MongoDatabaseClientTest {
 
     private DatabaseClient mongoClient;
 
     @BeforeAll
-    void setup() throws IOException {
+    void setup() {
         ConfigLoader configLoader = new ConfigLoader("application-mongodb.properties"); // or your test config file path
         mongoClient = new MongoDatabaseClient(configLoader);
     }
@@ -107,7 +107,7 @@ public class MongoDatabaseClientTest {
     }
 
     @Test
-    void shouldReturnPagedResults() throws Exception {
+    void shouldReturnPagedResults() {
         // Arrange
         for (int i = 1; i <= 10; i++) {
             TestMongoUser user = new TestMongoUser();
@@ -128,7 +128,7 @@ public class MongoDatabaseClientTest {
     }
 
     @Test
-    void shouldReturnSortedResults() throws Exception {
+    void shouldReturnSortedResults() {
         // Arrange
         String[] usernames = { "zeta", "alpha", "beta" };
         for (String name : usernames) {
@@ -152,7 +152,7 @@ public class MongoDatabaseClientTest {
     }
 
     @Test
-    void shouldReturnFilteredResults() throws Exception {
+    void shouldReturnFilteredResults() {
         // Arrange
         TestMongoUser targetUser = new TestMongoUser();
         targetUser.setUsername("filterme");
@@ -178,7 +178,7 @@ public class MongoDatabaseClientTest {
     }
 
     @Test
-    void shouldFindUsersByEmailContains() throws Exception {
+    void shouldFindUsersByEmailContains() {
         // Arrange
         TestMongoUser user1 = new TestMongoUser();
         user1.setUsername("david");

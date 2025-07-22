@@ -17,7 +17,7 @@ public class RepositoryInvocationHandler implements InvocationHandler {
     }
 
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    public Object invoke(Object proxy, Method method, Object[] args) {
         String name = method.getName();
 
         // Handle standard methods

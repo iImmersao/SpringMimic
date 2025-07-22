@@ -4,7 +4,7 @@ import com.iimmersao.springmimic.annotations.Component;
 
 @Component
 public class Port {
-    int portNo;
+    private final int portNo;
 
     public Port(int portNo) {
         this.portNo = portNo;

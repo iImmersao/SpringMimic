@@ -6,6 +6,7 @@ import org.bson.types.ObjectId;
 
 @Entity
 @Table(name = "users")
+@SuppressWarnings(value = "unused")
 public class TestMongoUser {
 
     @Id
