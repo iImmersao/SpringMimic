@@ -129,6 +129,17 @@ class DeclarativeTransactionTest {
     }
 
     @Test
+    void shouldRollbackWhenTransactionalMethodTimesOut() {
+        assertThrows(
+                TransactionTimeoutException.class,
+                () -> service.createUserThenTimeout("timeout-declarative")
+        );
+
+        assertTrue(findByUsername("timeout-declarative").isEmpty());
+        assertFalse(TransactionSynchronizationManager.isTransactionActive());
+    }
+
+    @Test
     void requiresNewShouldCommitInnerTransactionWhenOuterRollsBack() {
         assertThrows(
                 IllegalStateException.class,

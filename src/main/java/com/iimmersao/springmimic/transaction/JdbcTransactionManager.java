@@ -7,9 +7,18 @@ import java.sql.SQLException;
 
 public class JdbcTransactionManager implements TransactionManager {
     private final JdbcConnectionProvider connectionProvider;
+    private final int defaultTimeoutSeconds;
 
     public JdbcTransactionManager(JdbcConnectionProvider connectionProvider) {
+        this(connectionProvider, TransactionDefinition.TIMEOUT_DEFAULT);
+    }
+
+    public JdbcTransactionManager(JdbcConnectionProvider connectionProvider, int defaultTimeoutSeconds) {
+        if (defaultTimeoutSeconds < TransactionDefinition.TIMEOUT_DEFAULT) {
+            throw new IllegalArgumentException("defaultTimeoutSeconds must be -1 or greater");
+        }
         this.connectionProvider = connectionProvider;
+        this.defaultTimeoutSeconds = defaultTimeoutSeconds;
     }
 
     @Override
@@ -36,17 +45,27 @@ public class JdbcTransactionManager implements TransactionManager {
             return;
         }
         if (!status.isNewTransaction()) {
+            if (status.getContext().isTimedOut()) {
+                status.setRollbackOnly();
+            }
             status.markCompleted();
             return;
         }
 
         TransactionContext context = status.getContext();
         try {
+            if (context.isTimedOut()) {
+                context.setRollbackOnly();
+                context.getConnection().rollback();
+                throw new TransactionTimeoutException(timeoutMessage(context));
+            }
             if (context.isRollbackOnly()) {
                 context.getConnection().rollback();
             } else {
                 context.getConnection().commit();
             }
+        } catch (TransactionTimeoutException e) {
+            throw e;
         } catch (SQLException e) {
             throw new TransactionException("Failed to commit JDBC transaction", e);
         } finally {
@@ -82,6 +101,7 @@ public class JdbcTransactionManager implements TransactionManager {
             boolean previousAutoCommit = connection.getAutoCommit();
             int previousIsolation = connection.getTransactionIsolation();
             boolean previousReadOnly = connection.isReadOnly();
+            int timeoutSeconds = resolveTimeoutSeconds(txDefinition);
 
             if (txDefinition.getIsolation() != Isolation.DEFAULT) {
                 connection.setTransactionIsolation(txDefinition.getIsolation().toJdbcLevel(previousIsolation));
@@ -99,13 +119,26 @@ public class JdbcTransactionManager implements TransactionManager {
                     previousIsolation,
                     previousReadOnly,
                     txDefinition.isReadOnly(),
-                    txDefinition.getIsolation()
+                    txDefinition.getIsolation(),
+                    timeoutSeconds
             );
             TransactionSynchronizationManager.bind(context);
             return new TransactionStatus(context, true);
         } catch (SQLException e) {
             throw new TransactionException("Failed to begin JDBC transaction", e);
         }
+    }
+
+    private int resolveTimeoutSeconds(TransactionDefinition txDefinition) {
+        if (txDefinition.getTimeoutSeconds() != TransactionDefinition.TIMEOUT_DEFAULT) {
+            return txDefinition.getTimeoutSeconds();
+        }
+        return defaultTimeoutSeconds;
+    }
+
+    private String timeoutMessage(TransactionContext context) {
+        return "JDBC transaction timed out after " + context.getTimeoutSeconds()
+                + " second(s); elapsed " + context.getElapsed().toMillis() + " ms";
     }
 
     private void cleanup(TransactionStatus status) {

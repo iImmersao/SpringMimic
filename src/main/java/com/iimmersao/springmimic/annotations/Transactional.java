@@ -14,6 +14,7 @@ public @interface Transactional {
     Propagation propagation() default Propagation.REQUIRED;
     Isolation isolation() default Isolation.DEFAULT;
     boolean readOnly() default false;
+    int timeoutSeconds() default -1;
     Class<? extends Throwable>[] rollbackFor() default {};
     Class<? extends Throwable>[] noRollbackFor() default {};
 }

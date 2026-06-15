@@ -28,10 +28,9 @@ public class TransactionalInvocationHandler implements InvocationHandler {
         }
 
         TransactionStatus status = transactionManager.begin(toDefinition(transactional));
+        Object result;
         try {
-            Object result = invokeTarget(targetMethod, args);
-            transactionManager.commit(status);
-            return result;
+            result = invokeTarget(targetMethod, args);
         } catch (Throwable throwable) {
             if (shouldRollback(throwable, transactional)) {
                 rollback(status, throwable);
@@ -40,6 +39,9 @@ public class TransactionalInvocationHandler implements InvocationHandler {
             }
             throw throwable;
         }
+
+        transactionManager.commit(status);
+        return result;
     }
 
     private Object invokeTarget(Method targetMethod, Object[] args) throws Throwable {
@@ -71,7 +73,8 @@ public class TransactionalInvocationHandler implements InvocationHandler {
         return new TransactionDefinition(
                 transactional.propagation(),
                 transactional.isolation(),
-                transactional.readOnly()
+                transactional.readOnly(),
+                transactional.timeoutSeconds()
         );
     }
 

@@ -45,11 +45,28 @@ public class TransactionalTestServiceImpl implements TransactionalTestService {
         throw new IllegalStateException("committed after " + id);
     }
 
+    @Override
+    @Transactional(timeoutSeconds = 1)
+    public Integer createUserThenTimeout(String username) {
+        Integer id = saveUser(username);
+        sleepPastTimeout();
+        return id;
+    }
+
     private Integer saveUser(String username) {
         H2User user = new H2User();
         user.setUsername(username);
         user.setEmail(username + "@example.com");
         databaseClient.save(user);
         return user.getId();
+    }
+
+    private void sleepPastTimeout() {
+        try {
+            Thread.sleep(1200);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while waiting for transaction timeout", e);
+        }
     }
 }

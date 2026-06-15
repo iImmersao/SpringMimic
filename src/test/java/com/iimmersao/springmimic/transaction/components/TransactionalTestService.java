@@ -6,4 +6,5 @@ public interface TransactionalTestService {
     Integer createUserThenCheckedFailure(String username) throws TestCheckedException;
     Integer createUserThenRollbackForChecked(String username) throws TestCheckedException;
     Integer createUserThenNoRollbackRuntime(String username);
+    Integer createUserThenTimeout(String username);
 }

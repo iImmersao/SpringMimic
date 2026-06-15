@@ -97,6 +97,29 @@ class JdbcTransactionManagerTest {
     }
 
     @Test
+    void shouldRollbackWhenDefaultTimeoutExpires() throws Exception {
+        transactionManager = new JdbcTransactionManager(
+                new DriverManagerConnectionProvider(
+                        new ConfigLoader("h2").get("h2.url"),
+                        new ConfigLoader("h2").get("h2.username"),
+                        new ConfigLoader("h2").get("h2.password")
+                ),
+                1
+        );
+        TransactionStatus status = transactionManager.begin(TransactionDefinition.defaults());
+        H2User user = new H2User();
+        user.setUsername("timeout-manager");
+        user.setEmail("timeout-manager@example.com");
+
+        client.save(user);
+        Thread.sleep(1200);
+
+        assertThrows(TransactionTimeoutException.class, () -> transactionManager.commit(status));
+        assertTrue(client.findById(H2User.class, user.getId()).isEmpty());
+        assertFalse(TransactionSynchronizationManager.isTransactionActive());
+    }
+
+    @Test
     void supportsShouldNotStartTransactionWhenNoneExists() {
         TransactionDefinition supports = new TransactionDefinition(Propagation.SUPPORTS, Isolation.DEFAULT, false);
 

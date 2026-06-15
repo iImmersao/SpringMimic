@@ -135,7 +135,7 @@ public class SpringMimicApplicationRunner {
                 config.get("database.password")
         );
         DatabaseClient databaseClient = new MySqlDatabaseClient(new TransactionAwareConnectionProvider(rawProvider));
-        return new DatabaseSetup(databaseClient, new JdbcTransactionManager(rawProvider));
+        return new DatabaseSetup(databaseClient, new JdbcTransactionManager(rawProvider, transactionTimeout(config)));
     }
 
     private static DatabaseSetup createH2Setup(ConfigLoader config) {
@@ -145,7 +145,11 @@ public class SpringMimicApplicationRunner {
                 config.get("h2.password")
         );
         DatabaseClient databaseClient = new H2DatabaseClient(config, new TransactionAwareConnectionProvider(rawProvider));
-        return new DatabaseSetup(databaseClient, new JdbcTransactionManager(rawProvider));
+        return new DatabaseSetup(databaseClient, new JdbcTransactionManager(rawProvider, transactionTimeout(config)));
+    }
+
+    private static int transactionTimeout(ConfigLoader config) {
+        return config.getInt("springmimic.transaction.default-timeout-seconds", -1);
     }
 
     private static String getBasePackage(Class<?> mainClass) {

@@ -191,6 +191,7 @@ Supported options:
     propagation = Propagation.REQUIRED,
     isolation = Isolation.READ_COMMITTED,
     readOnly = false,
+    timeoutSeconds = 30,
     rollbackFor = SomeCheckedException.class,
     noRollbackFor = SomeRuntimeException.class
 )
@@ -209,7 +210,8 @@ Current MVP limitations:
 - Concrete class proxying is intentionally not implemented yet.
 - Self-invocation is not intercepted. A method calling another method on `this` bypasses the transaction proxy.
 - `readOnly` is passed to JDBC as a connection hint and is also recorded in SpringMimic's transaction context; individual drivers may or may not enforce it.
-- Timeout handling is not implemented yet.
+- `timeoutSeconds` rolls the transaction back when the timeout has elapsed before commit. Use `-1` to inherit the transaction manager default.
+- Set `springmimic.transaction.default-timeout-seconds` to configure a global JDBC transaction timeout. The default `-1` disables timeouts.
 
 If SpringMimic sees `@Transactional` on a bean that cannot be proxied, it prints a startup warning explaining why.
 
