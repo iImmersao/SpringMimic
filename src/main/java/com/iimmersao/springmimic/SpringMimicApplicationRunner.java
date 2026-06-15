@@ -9,9 +9,14 @@ import com.iimmersao.springmimic.database.DatabaseClient;
 import com.iimmersao.springmimic.database.H2DatabaseClient;
 import com.iimmersao.springmimic.database.MongoDatabaseClient;
 import com.iimmersao.springmimic.database.MySqlDatabaseClient;
+import com.iimmersao.springmimic.database.jdbc.DriverManagerConnectionProvider;
+import com.iimmersao.springmimic.database.jdbc.JdbcConnectionProvider;
+import com.iimmersao.springmimic.database.jdbc.TransactionAwareConnectionProvider;
 import com.iimmersao.springmimic.routing.Port;
 import com.iimmersao.springmimic.routing.Router;
 import com.iimmersao.springmimic.server.WebServer;
+import com.iimmersao.springmimic.transaction.JdbcTransactionManager;
+import com.iimmersao.springmimic.transaction.TransactionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
@@ -45,17 +50,14 @@ public class SpringMimicApplicationRunner {
                     .setLevel(ch.qos.logback.classic.Level.convertAnSLF4JLevel(Level.valueOf(level)));
 
             System.out.println("Setting up database access");
-            // Create the appropriate DatabaseClient
-            DatabaseClient databaseClient;
-            String dbType = config.get("db.type", "mysql").toLowerCase();
-            switch (dbType) {
-                case "mongo", "mongodb" -> databaseClient = new MongoDatabaseClient(config);
-                case "mysql" -> databaseClient = new MySqlDatabaseClient(config);
-                case "h2" -> databaseClient = new H2DatabaseClient(config);
-                default -> throw new IllegalArgumentException("Unsupported database type: " + dbType);
-            }
+            DatabaseSetup databaseSetup = createDatabaseSetup(config);
+            DatabaseClient databaseClient = databaseSetup.databaseClient();
+            TransactionManager transactionManager = databaseSetup.transactionManager();
             System.out.println("Set up DatabaseClient as: " + databaseClient.getClass().getName());
             context.registerDatabaseBean(DatabaseClient.class, databaseClient);
+            if (transactionManager != null) {
+                context.registerBean(TransactionManager.class, transactionManager);
+            }
             System.out.println("Initialising application context");
             context.initialize(null);
             System.out.println("Initialised application context");
@@ -65,6 +67,9 @@ public class SpringMimicApplicationRunner {
             springMimicContext.registerBean(ConfigLoader.class, config);
 
             springMimicContext.registerDatabaseBean(DatabaseClient.class, databaseClient);
+            if (transactionManager != null) {
+                springMimicContext.registerBean(TransactionManager.class, transactionManager);
+            }
             springMimicContext.registerBean(ApplicationContext.class, context);
 
             Port port = new Port(config.getInt("server.port", 8080));
@@ -113,6 +118,36 @@ public class SpringMimicApplicationRunner {
         running = false;
     }
 
+    private static DatabaseSetup createDatabaseSetup(ConfigLoader config) {
+        String dbType = config.get("db.type", "mysql").toLowerCase();
+        return switch (dbType) {
+            case "mongo", "mongodb" -> new DatabaseSetup(new MongoDatabaseClient(config), null);
+            case "mysql" -> createMySqlSetup(config);
+            case "h2" -> createH2Setup(config);
+            default -> throw new IllegalArgumentException("Unsupported database type: " + dbType);
+        };
+    }
+
+    private static DatabaseSetup createMySqlSetup(ConfigLoader config) {
+        JdbcConnectionProvider rawProvider = new DriverManagerConnectionProvider(
+                config.get("database.url"),
+                config.get("database.username"),
+                config.get("database.password")
+        );
+        DatabaseClient databaseClient = new MySqlDatabaseClient(new TransactionAwareConnectionProvider(rawProvider));
+        return new DatabaseSetup(databaseClient, new JdbcTransactionManager(rawProvider));
+    }
+
+    private static DatabaseSetup createH2Setup(ConfigLoader config) {
+        JdbcConnectionProvider rawProvider = new DriverManagerConnectionProvider(
+                config.get("h2.url"),
+                config.get("h2.username"),
+                config.get("h2.password")
+        );
+        DatabaseClient databaseClient = new H2DatabaseClient(config, new TransactionAwareConnectionProvider(rawProvider));
+        return new DatabaseSetup(databaseClient, new JdbcTransactionManager(rawProvider));
+    }
+
     private static String getBasePackage(Class<?> mainClass) {
         ComponentScan scanAnnotation = mainClass.getAnnotation(ComponentScan.class);
         if (scanAnnotation != null) {
@@ -120,4 +155,6 @@ public class SpringMimicApplicationRunner {
         }
         return mainClass.getPackageName(); // fallback
     }
+
+    private record DatabaseSetup(DatabaseClient databaseClient, TransactionManager transactionManager) {}
 }
