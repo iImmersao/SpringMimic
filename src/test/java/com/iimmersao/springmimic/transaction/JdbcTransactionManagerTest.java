@@ -9,6 +9,7 @@ import com.iimmersao.springmimic.model.H2User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.sql.Connection;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -76,5 +77,34 @@ class JdbcTransactionManagerTest {
         transactionManager.rollback(outer);
         assertTrue(client.findById(H2User.class, user.getId()).isEmpty());
         assertFalse(TransactionSynchronizationManager.isTransactionActive());
+    }
+
+    @Test
+    void requiresNewShouldSuspendAndRestoreOuterTransaction() {
+        TransactionStatus outer = transactionManager.begin(TransactionDefinition.defaults());
+        Connection outerConnection = TransactionSynchronizationManager.getCurrentConnection();
+        TransactionDefinition requiresNew = new TransactionDefinition(Propagation.REQUIRES_NEW, Isolation.DEFAULT, false);
+
+        TransactionStatus inner = transactionManager.begin(requiresNew);
+        Connection innerConnection = TransactionSynchronizationManager.getCurrentConnection();
+
+        assertNotSame(outerConnection, innerConnection);
+        transactionManager.commit(inner);
+        assertSame(outerConnection, TransactionSynchronizationManager.getCurrentConnection());
+
+        transactionManager.rollback(outer);
+        assertFalse(TransactionSynchronizationManager.isTransactionActive());
+    }
+
+    @Test
+    void supportsShouldNotStartTransactionWhenNoneExists() {
+        TransactionDefinition supports = new TransactionDefinition(Propagation.SUPPORTS, Isolation.DEFAULT, false);
+
+        TransactionStatus status = transactionManager.begin(supports);
+
+        assertFalse(status.hasTransaction());
+        assertFalse(TransactionSynchronizationManager.isTransactionActive());
+        transactionManager.commit(status);
+        assertTrue(status.isCompleted());
     }
 }

@@ -21,36 +21,11 @@ public class JdbcTransactionManager implements TransactionManager {
             return new TransactionStatus(null, false);
         }
 
-        if (txDefinition.getPropagation() == Propagation.REQUIRES_NEW) {
-            throw new TransactionException("REQUIRES_NEW propagation is not implemented in the JDBC transaction foundation yet");
-        }
-
-        if (current != null) {
+        if (current != null && txDefinition.getPropagation() != Propagation.REQUIRES_NEW) {
             return new TransactionStatus(current, false);
         }
 
-        try {
-            Connection connection = connectionProvider.getConnection();
-            boolean previousAutoCommit = connection.getAutoCommit();
-            int previousIsolation = connection.getTransactionIsolation();
-            boolean previousReadOnly = connection.isReadOnly();
-
-            if (txDefinition.getIsolation() != Isolation.DEFAULT) {
-                connection.setTransactionIsolation(txDefinition.getIsolation().toJdbcLevel(previousIsolation));
-            }
-            if (connection.isReadOnly() != txDefinition.isReadOnly()) {
-                connection.setReadOnly(txDefinition.isReadOnly());
-            }
-            if (previousAutoCommit) {
-                connection.setAutoCommit(false);
-            }
-
-            TransactionContext context = new TransactionContext(connection, previousAutoCommit, previousIsolation, previousReadOnly);
-            TransactionSynchronizationManager.bind(context);
-            return new TransactionStatus(context, true);
-        } catch (SQLException e) {
-            throw new TransactionException("Failed to begin JDBC transaction", e);
-        }
+        return beginNewTransaction(txDefinition);
     }
 
     @Override
@@ -98,6 +73,38 @@ public class JdbcTransactionManager implements TransactionManager {
             throw new TransactionException("Failed to roll back JDBC transaction", e);
         } finally {
             cleanup(status);
+        }
+    }
+
+    private TransactionStatus beginNewTransaction(TransactionDefinition txDefinition) {
+        try {
+            Connection connection = connectionProvider.getConnection();
+            boolean previousAutoCommit = connection.getAutoCommit();
+            int previousIsolation = connection.getTransactionIsolation();
+            boolean previousReadOnly = connection.isReadOnly();
+
+            if (txDefinition.getIsolation() != Isolation.DEFAULT) {
+                connection.setTransactionIsolation(txDefinition.getIsolation().toJdbcLevel(previousIsolation));
+            }
+            if (connection.isReadOnly() != txDefinition.isReadOnly()) {
+                connection.setReadOnly(txDefinition.isReadOnly());
+            }
+            if (previousAutoCommit) {
+                connection.setAutoCommit(false);
+            }
+
+            TransactionContext context = new TransactionContext(
+                    connection,
+                    previousAutoCommit,
+                    previousIsolation,
+                    previousReadOnly,
+                    txDefinition.isReadOnly(),
+                    txDefinition.getIsolation()
+            );
+            TransactionSynchronizationManager.bind(context);
+            return new TransactionStatus(context, true);
+        } catch (SQLException e) {
+            throw new TransactionException("Failed to begin JDBC transaction", e);
         }
     }
 

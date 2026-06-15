@@ -8,13 +8,19 @@ import com.iimmersao.springmimic.database.jdbc.DriverManagerConnectionProvider;
 import com.iimmersao.springmimic.database.jdbc.JdbcConnectionProvider;
 import com.iimmersao.springmimic.database.jdbc.TransactionAwareConnectionProvider;
 import com.iimmersao.springmimic.model.H2User;
+import com.iimmersao.springmimic.transaction.components.OuterTransactionService;
+import com.iimmersao.springmimic.transaction.components.RequiresNewService;
 import com.iimmersao.springmimic.transaction.components.TestCheckedException;
 import com.iimmersao.springmimic.transaction.components.TransactionalConsumer;
 import com.iimmersao.springmimic.transaction.components.TransactionalTestService;
+import com.iimmersao.springmimic.web.PageRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
+import java.sql.Connection;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -22,6 +28,8 @@ class DeclarativeTransactionTest {
     private H2DatabaseClient client;
     private ApplicationContext context;
     private TransactionalTestService service;
+    private RequiresNewService requiresNewService;
+    private OuterTransactionService outerTransactionService;
 
     @BeforeEach
     void setUp() {
@@ -41,6 +49,8 @@ class DeclarativeTransactionTest {
         context.initialize(null);
         context.injectDependencies();
         service = context.getBean(TransactionalTestService.class);
+        requiresNewService = context.getBean(RequiresNewService.class);
+        outerTransactionService = context.getBean(OuterTransactionService.class);
     }
 
     @Test
@@ -116,6 +126,48 @@ class DeclarativeTransactionTest {
 
         Integer id = parseTrailingId(thrown.getMessage());
         assertTrue(client.findById(H2User.class, id).isEmpty());
+    }
+
+    @Test
+    void requiresNewShouldCommitInnerTransactionWhenOuterRollsBack() {
+        assertThrows(
+                IllegalStateException.class,
+                () -> outerTransactionService.createOuterThenRequiresNewThenFail("outer-rollback", "inner-commit")
+        );
+
+        assertTrue(findByUsername("outer-rollback").isEmpty());
+        assertEquals(1, findByUsername("inner-commit").size());
+        assertFalse(TransactionSynchronizationManager.isTransactionActive());
+    }
+
+    @Test
+    void supportsShouldRunWithoutTransactionWhenNoneExists() {
+        assertFalse(requiresNewService.supportsHasActiveTransaction());
+        assertFalse(TransactionSynchronizationManager.isTransactionActive());
+    }
+
+    @Test
+    void supportsShouldJoinActiveTransactionWhenOneExists() {
+        assertTrue(requiresNewService.requiredCallingSupportsHasActiveTransaction());
+        assertFalse(TransactionSynchronizationManager.isTransactionActive());
+    }
+
+    @Test
+    void readOnlyShouldBeAppliedToTransactionalConnection() {
+        assertTrue(requiresNewService.readOnlyFlagIsApplied());
+        assertFalse(TransactionSynchronizationManager.isTransactionActive());
+    }
+
+    @Test
+    void isolationShouldBeAppliedToTransactionalConnection() {
+        assertEquals(Connection.TRANSACTION_SERIALIZABLE, requiresNewService.serializableIsolationLevel());
+        assertFalse(TransactionSynchronizationManager.isTransactionActive());
+    }
+
+    private List<H2User> findByUsername(String username) {
+        PageRequest request = new PageRequest();
+        request.setFilters(Map.of("username", username));
+        return client.findAll(H2User.class, request);
     }
 
     private Integer parseTrailingId(String message) {
