@@ -15,10 +15,33 @@ public class TransactionalProxyFactory {
     public boolean canCreateProxy(Object bean) {
         return bean != null
                 && bean.getClass().getInterfaces().length > 0
-                && hasTransactionalAnnotation(bean.getClass());
+                && isTransactionalBean(bean);
+    }
+
+    public boolean isTransactionalBean(Object bean) {
+        return bean != null && hasTransactionalAnnotation(bean.getClass());
+    }
+
+    public String getProxySkipReason(Object bean) {
+        if (!isTransactionalBean(bean)) {
+            return null;
+        }
+        if (bean.getClass().getInterfaces().length == 0) {
+            return "@Transactional bean " + bean.getClass().getName()
+                    + " will not be proxied because it does not implement an interface. "
+                    + "The current MVP supports interface-based transactional proxies only.";
+        }
+        if (transactionManager == null) {
+            return "@Transactional bean " + bean.getClass().getName()
+                    + " will not be proxied because no TransactionManager is registered.";
+        }
+        return null;
     }
 
     public Object createProxy(Object bean) {
+        if (transactionManager == null) {
+            throw new TransactionException("Cannot create transactional proxy without a TransactionManager");
+        }
         Class<?>[] interfaces = bean.getClass().getInterfaces();
         return Proxy.newProxyInstance(
                 bean.getClass().getClassLoader(),

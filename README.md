@@ -13,6 +13,7 @@ A lightweight, annotation-driven Java framework inspired by Spring Boot — desi
   - **MySQL**, **MongoDB**, and **H2** database access
   - CRUD-style dynamic repository interfaces (`CrudRepository`)
   - Pagination, filtering, sorting
+  - JDBC transaction support for H2 and MySQL with `@Transactional`
   - Declarative role-based access control via `@Authenticated` and `@RolesAllowed`
 - ✅ Component scanning with `@SpringMimicApplication` and `@ComponentScan`
 - ✅ Basic authentication support
@@ -123,15 +124,94 @@ mongodb.uri=mongodb://localhost:27017
 mongodb.database=myappmongodb
 
 # MySQL
-mysql.url=jdbc:mysql://localhost:3306/myappmysqldb
-mysql.username=root
-mysql.password=secret
+database.url=jdbc:mysql://localhost:3306/myappmysqldb
+database.username=root
+database.password=secret
 
 # H2 (default for testing)
 h2.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
 h2.username=sa
 h2.password=password
 ```
+### 7. Use JDBC Transactions
+
+SpringMimic supports declarative JDBC transactions for H2 and MySQL. MongoDB transactions are not part of the current MVP.
+
+Transactions are applied through interface-based service proxies, so define a service interface and inject or look up the service by that interface:
+
+```java
+public interface AccountService {
+    void transfer(Integer fromId, Integer toId, BigDecimal amount);
+}
+
+@Service
+public class AccountServiceImpl implements AccountService {
+    private final AccountRepository accounts;
+
+    public AccountServiceImpl(AccountRepository accounts) {
+        this.accounts = accounts;
+    }
+
+    @Override
+    @Transactional
+    public void transfer(Integer fromId, Integer toId, BigDecimal amount) {
+        Account from = accounts.findById(fromId).orElseThrow();
+        Account to = accounts.findById(toId).orElseThrow();
+
+        from.debit(amount);
+        to.credit(amount);
+
+        accounts.save(from);
+        accounts.save(to);
+    }
+}
+```
+
+Then inject the interface:
+
+```java
+@RestController
+public class TransferController {
+    @Inject
+    private AccountService accountService;
+}
+```
+
+Default transaction behavior:
+
+- Commits when the method returns normally.
+- Rolls back on `RuntimeException` and `Error`.
+- Commits checked exceptions unless they are listed in `rollbackFor`.
+- `noRollbackFor` takes precedence when it matches the thrown exception.
+
+Supported options:
+
+```java
+@Transactional(
+    propagation = Propagation.REQUIRED,
+    isolation = Isolation.READ_COMMITTED,
+    readOnly = false,
+    rollbackFor = SomeCheckedException.class,
+    noRollbackFor = SomeRuntimeException.class
+)
+```
+
+Supported propagation modes:
+
+- `REQUIRED`: join the current transaction or start a new one.
+- `REQUIRES_NEW`: start a separate transaction and resume the outer transaction afterward.
+- `SUPPORTS`: join a current transaction if one exists, otherwise run without starting one.
+
+Current MVP limitations:
+
+- Transactional service classes must implement an interface.
+- Inject or retrieve the service by its interface type to get the proxy.
+- Concrete class proxying is intentionally not implemented yet.
+- Self-invocation is not intercepted. A method calling another method on `this` bypasses the transaction proxy.
+- `readOnly` is passed to JDBC as a connection hint and is also recorded in SpringMimic's transaction context; individual drivers may or may not enforce it.
+- Timeout handling is not implemented yet.
+
+If SpringMimic sees `@Transactional` on a bean that cannot be proxied, it prints a startup warning explaining why.
 
 🧪 Testing Support
 

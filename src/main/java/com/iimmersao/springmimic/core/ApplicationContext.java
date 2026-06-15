@@ -203,6 +203,10 @@ public class ApplicationContext {
 
         Object transactionManagerBean = manualBeans.get(TransactionManager.class);
         if (!(transactionManagerBean instanceof TransactionManager transactionManager)) {
+            TransactionalProxyFactory proxyFactory = new TransactionalProxyFactory(null);
+            for (Object bean : components.values()) {
+                warnIfTransactionalProxySkipped(proxyFactory, bean);
+            }
             transactionalProxiesInitialized = true;
             return;
         }
@@ -210,6 +214,7 @@ public class ApplicationContext {
         TransactionalProxyFactory proxyFactory = new TransactionalProxyFactory(transactionManager);
         for (Object bean : components.values()) {
             if (!proxyFactory.canCreateProxy(bean)) {
+                warnIfTransactionalProxySkipped(proxyFactory, bean);
                 continue;
             }
 
@@ -220,6 +225,13 @@ public class ApplicationContext {
         }
 
         transactionalProxiesInitialized = true;
+    }
+
+    private void warnIfTransactionalProxySkipped(TransactionalProxyFactory proxyFactory, Object bean) {
+        String reason = proxyFactory.getProxySkipReason(bean);
+        if (reason != null) {
+            System.err.println("SpringMimic transaction warning: " + reason);
+        }
     }
 
     public <T> T getBean(Class<T> type) {
