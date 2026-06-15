@@ -186,7 +186,7 @@ Default transaction behavior:
 
 Supported options:
 
-```java
+```text
 @Transactional(
     propagation = Propagation.REQUIRED,
     isolation = Isolation.READ_COMMITTED,
