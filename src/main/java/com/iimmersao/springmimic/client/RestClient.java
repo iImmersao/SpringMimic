@@ -12,12 +12,16 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import com.iimmersao.springmimic.annotations.Bean;
 import com.iimmersao.springmimic.core.ConfigLoader;
 
 @Bean
 public class RestClient {
+
+    private static final CountDownLatch RETRY_BACKOFF_SIGNAL = new CountDownLatch(1);
 
     private final Map<String, String> defaultHeaders;
     private final int connectTimeoutMillis;
@@ -175,13 +179,20 @@ public class RestClient {
             } catch (IOException e) {
                 attempt++;
                 if (attempt > maxRetries) throw e;
-                try {
-                    Thread.sleep(retryDelayMillis);
-                } catch (InterruptedException interrupt) {
-                    Thread.currentThread().interrupt();
-                    throw new IOException("Retry interrupted", interrupt);
-                }
+                waitBeforeRetry();
             }
+        }
+    }
+
+    private void waitBeforeRetry() throws IOException {
+        if (retryDelayMillis <= 0) {
+            return;
+        }
+        try {
+            RETRY_BACKOFF_SIGNAL.await(retryDelayMillis, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException interrupt) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Retry interrupted", interrupt);
         }
     }
 

@@ -22,14 +22,16 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
 import java.util.Arrays;
+import java.util.concurrent.CountDownLatch;
 
 public class SpringMimicApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(SpringMimicApplicationRunner.class);
 
-    private static boolean running;
+    private static volatile CountDownLatch shutdownSignal;
 
     public static void run(Class<?> applicationClass) {
+        shutdownSignal = new CountDownLatch(1);
         DatabaseClient databaseClient = null;
         WebServer server = null;
         try {
@@ -99,17 +101,8 @@ public class SpringMimicApplicationRunner {
             log.info("Application started with database: {}", config.get("db.type"));
             log.info("Environment: {}", config.get("env", "development"));
             System.out.println("SpringMimic application " + config.get("server.name") + " started");
-            // Allow main thread to be shut down by another thread.
-            running = true;
 
-            while (running) {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    running = false;
-                }
-            }
+            waitForStopSignal();
         } catch (Exception e) {
             System.err.println("Application failed to start: " + e.getMessage());
             log.error(Arrays.toString(e.getStackTrace()));
@@ -122,7 +115,22 @@ public class SpringMimicApplicationRunner {
     }
 
     public void stop() {
-        running = false;
+        CountDownLatch signal = shutdownSignal;
+        if (signal != null) {
+            signal.countDown();
+        }
+    }
+
+    private static void waitForStopSignal() {
+        CountDownLatch signal = shutdownSignal;
+        if (signal == null) {
+            return;
+        }
+        try {
+            signal.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private static void closeQuietly(Object resource) {
