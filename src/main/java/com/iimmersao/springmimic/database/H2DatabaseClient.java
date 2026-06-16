@@ -4,6 +4,9 @@ import com.iimmersao.springmimic.annotations.Bean;
 import com.iimmersao.springmimic.annotations.Entity;
 import com.iimmersao.springmimic.annotations.Table;
 import com.iimmersao.springmimic.core.ConfigLoader;
+import com.iimmersao.springmimic.database.jdbc.DriverManagerConnectionProvider;
+import com.iimmersao.springmimic.database.jdbc.JdbcConnectionProvider;
+import com.iimmersao.springmimic.database.jdbc.TransactionAwareConnectionProvider;
 import com.iimmersao.springmimic.exceptions.DatabaseException;
 import com.iimmersao.springmimic.web.PageRequest;
 
@@ -15,15 +18,18 @@ import java.util.stream.Collectors;
 @Bean
 public class H2DatabaseClient implements DatabaseClient {
 
-    private final String url;
-    private final String username;
-    private final String password;
+    private final JdbcConnectionProvider connectionProvider;
 
     public H2DatabaseClient(ConfigLoader config) {
-        this.url = config.get("h2.url");
-        this.username = config.get("h2.username");
-        this.password = config.get("h2.password");
+        this(config, new TransactionAwareConnectionProvider(new DriverManagerConnectionProvider(
+                config.get("h2.url"),
+                config.get("h2.username"),
+                config.get("h2.password")
+        )));
+    }
 
+    public H2DatabaseClient(ConfigLoader config, JdbcConnectionProvider connectionProvider) {
+        this.connectionProvider = connectionProvider;
         try {
             Class.forName("org.h2.Driver");
             initializeSchema();
@@ -43,16 +49,29 @@ public class H2DatabaseClient implements DatabaseClient {
         );
     """;
 
-        try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement()) {
-            stmt.execute(sql);
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute(sql);
+            }
         } catch (SQLException e) {
             throw new RuntimeException("Failed to initialize H2 schema", e);
+        } finally {
+            releaseConnection(conn);
         }
     }
 
     private Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(url, username, password);
+        return connectionProvider.getConnection();
+    }
+
+    private void releaseConnection(Connection connection) {
+        try {
+            connectionProvider.releaseConnection(connection);
+        } catch (SQLException e) {
+            throw new DatabaseException("Failed to release H2 connection", e);
+        }
     }
 
     private String getTableName(Class<?> clazz) {
@@ -77,39 +96,34 @@ public class H2DatabaseClient implements DatabaseClient {
                 .filter(f -> !"id".equalsIgnoreCase(f.getName()))
                 .toList();
 
-        String columns = fields.stream()
-                .map(Field::getName)
-                .collect(Collectors.joining(", "));
-
-        String placeholders = fields.stream()
-                .map(f -> "?")
-                .collect(Collectors.joining(", "));
-
+        String columns = fields.stream().map(Field::getName).collect(Collectors.joining(", "));
+        String placeholders = fields.stream().map(f -> "?").collect(Collectors.joining(", "));
         String sql = String.format("INSERT INTO %s (%s) VALUES (%s)", getTableName(clazz), columns, placeholders);
 
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                for (int i = 0; i < fields.size(); i++) {
+                    Field f = fields.get(i);
+                    f.setAccessible(true);
+                    stmt.setObject(i + 1, f.get(entity));
+                }
+                stmt.executeUpdate();
 
-            for (int i = 0; i < fields.size(); i++) {
-                Field f = fields.get(i);
-                f.setAccessible(true);
-                stmt.setObject(i + 1, f.get(entity));
-            }
-
-            stmt.executeUpdate();
-
-            // Set generated key back into entity
-            Field idField = getIdField(clazz);
-            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    Object key = generatedKeys.getObject(1);
-                    idField.setAccessible(true);
-                    idField.set(entity, key);
+                Field idField = getIdField(clazz);
+                try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        Object key = generatedKeys.getObject(1);
+                        idField.setAccessible(true);
+                        idField.set(entity, key);
+                    }
                 }
             }
-
         } catch (Exception e) {
             throw new RuntimeException("Failed to save entity", e);
+        } finally {
+            releaseConnection(conn);
         }
     }
 
@@ -120,39 +134,43 @@ public class H2DatabaseClient implements DatabaseClient {
         }
 
         String sql = "SELECT * FROM " + getTableName(entityType) + " WHERE id = ?";
-
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setObject(1, id);
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                return Optional.of(mapResultSetToObject(entityType, rs));
-            } else {
-                return Optional.empty();
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setObject(1, id);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        return Optional.of(mapResultSetToObject(entityType, rs));
+                    }
+                    return Optional.empty();
+                }
             }
-
         } catch (Exception e) {
             throw new DatabaseException("Failed to find entity by ID", e);
+        } finally {
+            releaseConnection(conn);
         }
     }
 
     @Override
     public <T> List<T> findAll(Class<T> entityType) {
         String sql = "SELECT * FROM " + getTableName(entityType);
-
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-
-            List<T> results = new ArrayList<>();
-            while (rs.next()) {
-                results.add(mapResultSetToObject(entityType, rs));
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(sql);
+                 ResultSet rs = stmt.executeQuery()) {
+                List<T> results = new ArrayList<>();
+                while (rs.next()) {
+                    results.add(mapResultSetToObject(entityType, rs));
+                }
+                return results;
             }
-            return results;
-
         } catch (Exception e) {
             throw new RuntimeException("Failed to fetch all entities", e);
+        } finally {
+            releaseConnection(conn);
         }
     }
 
@@ -164,56 +182,57 @@ public class H2DatabaseClient implements DatabaseClient {
                 .filter(f -> !"id".equalsIgnoreCase(f.getName()))
                 .toList();
 
-        String updates = fields.stream()
-                .map(f -> f.getName() + " = ?")
-                .collect(Collectors.joining(", "));
-
+        String updates = fields.stream().map(f -> f.getName() + " = ?").collect(Collectors.joining(", "));
         String sql = String.format("UPDATE %s SET %s WHERE id = ?", getTableName(clazz), updates);
-
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            for (int i = 0; i < fields.size(); i++) {
-                fields.get(i).setAccessible(true);
-                stmt.setObject(i + 1, fields.get(i).get(entity));
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                for (int i = 0; i < fields.size(); i++) {
+                    fields.get(i).setAccessible(true);
+                    stmt.setObject(i + 1, fields.get(i).get(entity));
+                }
+                idField.setAccessible(true);
+                stmt.setObject(fields.size() + 1, idField.get(entity));
+                stmt.executeUpdate();
             }
-
-            idField.setAccessible(true);
-            stmt.setObject(fields.size() + 1, idField.get(entity));
-
-            stmt.executeUpdate();
-
         } catch (Exception e) {
             throw new RuntimeException("Failed to update entity", e);
+        } finally {
+            releaseConnection(conn);
         }
     }
 
     @Override
     public <T> void deleteById(Class<T> entityType, Object id) {
         String sql = "DELETE FROM " + getTableName(entityType) + " WHERE id = ?";
-
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setObject(1, id);
-            stmt.executeUpdate();
-
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setObject(1, id);
+                stmt.executeUpdate();
+            }
         } catch (Exception e) {
             throw new RuntimeException("Failed to delete entity by ID", e);
+        } finally {
+            releaseConnection(conn);
         }
     }
 
     @Override
     public <T> void deleteAll(Class<T> entityType) {
         String sql = "DELETE FROM " + getTableName(entityType);
-
-        try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement()) {
-
-            stmt.executeUpdate(sql);
-
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate(sql);
+            }
         } catch (Exception e) {
             throw new RuntimeException("Failed to delete all entities", e);
+        } finally {
+            releaseConnection(conn);
         }
     }
 
@@ -221,9 +240,7 @@ public class H2DatabaseClient implements DatabaseClient {
     public <T> List<T> findAll(Class<T> entityType, PageRequest pageRequest) {
         try {
             validateFieldNames(entityType, pageRequest.getFilters());
-            // continue with building query and execution
         } catch (IllegalArgumentException ex) {
-            // Optional: log and return empty list instead of failing
             return Collections.emptyList();
         } catch (Exception e) {
             throw new RuntimeException("Failed to fetch paginated results", e);
@@ -233,11 +250,9 @@ public class H2DatabaseClient implements DatabaseClient {
         List<String> whereClauses = new ArrayList<>();
         List<Object> parameters = new ArrayList<>();
 
-        // Build WHERE clause
         for (Map.Entry<String, Object> entry : pageRequest.getFilters().entrySet()) {
             String field = entry.getKey();
             Object value = entry.getValue();
-
             if (pageRequest.getLikeFields().contains(field)) {
                 whereClauses.add(field + " LIKE ?");
                 parameters.add("%" + value + "%");
@@ -248,47 +263,42 @@ public class H2DatabaseClient implements DatabaseClient {
         }
 
         StringBuilder sql = new StringBuilder("SELECT * FROM ").append(tableName);
-
         if (!whereClauses.isEmpty()) {
             sql.append(" WHERE ").append(String.join(" AND ", whereClauses));
         }
-
-        // Add sorting
-        // Add ORDER BY clause
-        String orderClause = "";
         if (pageRequest.getSortBy() != null) {
             String[] sortParts = pageRequest.getSortBy().split(",");
-            String sortField = sortParts[0];
-
+            String sortField = sortParts[0].trim();
             if (!isValidField(entityType, sortField)) {
                 throw new IllegalArgumentException("Invalid sort field: " + sortField);
             }
-            String direction = (sortParts.length > 1 && "desc".equalsIgnoreCase(sortParts[1])) ? " DESC" : " ASC";
-            orderClause = " ORDER BY " + sortField + direction;
-            sql.append(orderClause);
+            String direction = (sortParts.length > 1 && "desc".equalsIgnoreCase(sortParts[1].trim())) ? " DESC" : " ASC";
+            sql.append(" ORDER BY ").append(sortField).append(direction);
         }
 
-        // Add pagination (LIMIT + OFFSET)
         sql.append(" LIMIT ? OFFSET ?");
         parameters.add(pageRequest.getSize());
         parameters.add(pageRequest.getPage() * pageRequest.getSize());
 
-        try (Connection connection = getConnection();
-             PreparedStatement stmt = connection.prepareStatement(sql.toString())) {
-
-            for (int i = 0; i < parameters.size(); i++) {
-                stmt.setObject(i + 1, parameters.get(i));
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+                for (int i = 0; i < parameters.size(); i++) {
+                    stmt.setObject(i + 1, parameters.get(i));
+                }
+                try (ResultSet rs = stmt.executeQuery()) {
+                    List<T> results = new ArrayList<>();
+                    while (rs.next()) {
+                        results.add(mapResultSetToObject(entityType, rs));
+                    }
+                    return results;
+                }
             }
-
-            ResultSet rs = stmt.executeQuery();
-            List<T> results = new ArrayList<>();
-            while (rs.next()) {
-                results.add(mapResultSetToObject(entityType, rs));
-            }
-            return results;
-
         } catch (Exception e) {
             throw new RuntimeException("Failed to fetch paginated results", e);
+        } finally {
+            releaseConnection(conn);
         }
     }
 
@@ -296,16 +306,19 @@ public class H2DatabaseClient implements DatabaseClient {
     public boolean existsBy(Class<?> entityType, String fieldName, Object value) {
         String table = getTableName(entityType);
         String sql = "SELECT 1 FROM " + table + " WHERE " + fieldName + " = ? LIMIT 1";
-
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setObject(1, value);
-            try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next();
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setObject(1, value);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    return rs.next();
+                }
             }
         } catch (Exception e) {
             throw new RuntimeException("Failed to execute existsBy", e);
+        } finally {
+            releaseConnection(conn);
         }
     }
 
@@ -313,16 +326,19 @@ public class H2DatabaseClient implements DatabaseClient {
     public long countBy(Class<?> entityType, String fieldName, Object value) {
         String table = getTableName(entityType);
         String sql = "SELECT COUNT(*) FROM " + table + " WHERE " + fieldName + " = ?";
-
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setObject(1, value);
-            try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next() ? rs.getLong(1) : 0L;
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setObject(1, value);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    return rs.next() ? rs.getLong(1) : 0L;
+                }
             }
         } catch (Exception e) {
             throw new RuntimeException("Failed to execute countBy", e);
+        } finally {
+            releaseConnection(conn);
         }
     }
 
@@ -346,10 +362,7 @@ public class H2DatabaseClient implements DatabaseClient {
     }
 
     private void validateFieldNames(Class<?> entityType, Map<String, Object> filters) {
-        Set<String> validFields = Arrays.stream(entityType.getDeclaredFields())
-                .map(Field::getName)
-                .collect(Collectors.toSet());
-
+        Set<String> validFields = Arrays.stream(entityType.getDeclaredFields()).map(Field::getName).collect(Collectors.toSet());
         for (String field : filters.keySet()) {
             if (!validFields.contains(field)) {
                 throw new IllegalArgumentException("Unknown field in filter: " + field);
@@ -367,7 +380,7 @@ public class H2DatabaseClient implements DatabaseClient {
             } catch (NumberFormatException e) {
                 return false;
             }
-        } else {
-            return false;
         }
-    }}
+        return false;
+    }
+}

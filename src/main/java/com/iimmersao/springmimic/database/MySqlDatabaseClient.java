@@ -2,6 +2,10 @@ package com.iimmersao.springmimic.database;
 
 import com.iimmersao.springmimic.annotations.*;
 import com.iimmersao.springmimic.core.ConfigLoader;
+import com.iimmersao.springmimic.database.jdbc.DriverManagerConnectionProvider;
+import com.iimmersao.springmimic.database.jdbc.JdbcConnectionProvider;
+import com.iimmersao.springmimic.database.jdbc.SingleConnectionProvider;
+import com.iimmersao.springmimic.database.jdbc.TransactionAwareConnectionProvider;
 import com.iimmersao.springmimic.exceptions.DatabaseException;
 import com.iimmersao.springmimic.web.PageRequest;
 
@@ -13,66 +17,69 @@ import java.util.stream.Collectors;
 @Bean
 public class MySqlDatabaseClient implements DatabaseClient {
 
-    private final Connection connection;
-    private ConfigLoader config;
+    private final JdbcConnectionProvider connectionProvider;
 
     public MySqlDatabaseClient(ConfigLoader config) {
-        this.config = config;
-
-        try {
-            String url = config.get("database.url");
-            String username = config.get("database.username");
-            String password = config.get("database.password");
-            connection = DriverManager.getConnection(
-                    url, username, password);
-        } catch (Exception e) {
-            throw new DatabaseException("Failed to connect to MySql", e);
-        }
+        this(new TransactionAwareConnectionProvider(new DriverManagerConnectionProvider(
+                config.get("database.url"),
+                config.get("database.username"),
+                config.get("database.password")
+        )));
     }
 
     public MySqlDatabaseClient(Connection connection) {
-        this.connection = connection;
+        this(new SingleConnectionProvider(connection));
+    }
+
+    public MySqlDatabaseClient(JdbcConnectionProvider connectionProvider) {
+        this.connectionProvider = connectionProvider;
     }
 
     @Override
     public <T> Optional<T> findById(Class<T> clazz, Object id) {
+        Connection conn = null;
         try {
             String table = getTableName(clazz);
             Field idField = getIdField(clazz);
             String column = getColumnName(idField);
-
             String sql = "SELECT * FROM " + table + " WHERE " + column + " = ?";
-            try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            conn = getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
                 stmt.setObject(1, id);
-                ResultSet rs = stmt.executeQuery();
-                if (rs.next()) {
-                    return Optional.of(mapResultSetToObject(clazz, rs));
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        return Optional.of(mapResultSetToObject(clazz, rs));
+                    }
                 }
             }
         } catch (Exception e) {
             throw new DatabaseException("Failed to find entity by ID", e);
+        } finally {
+            releaseConnection(conn);
         }
-
         return Optional.empty();
     }
 
     @Override
     public <T> List<T> findAll(Class<T> clazz) {
-        List<T> results = new ArrayList<>();
+        Connection conn = null;
         try {
             String table = getTableName(clazz);
             String sql = "SELECT * FROM " + table;
-            try (PreparedStatement stmt = connection.prepareStatement(sql);
+            conn = getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(sql);
                  ResultSet rs = stmt.executeQuery()) {
+                List<T> results = new ArrayList<>();
                 while (rs.next()) {
                     results.add(mapResultSetToObject(clazz, rs));
                 }
+                return results;
             }
         } catch (Exception e) {
             throw new DatabaseException("Failed to find all entities", e);
+        } finally {
+            releaseConnection(conn);
         }
-
-        return results;
     }
 
     @Override
@@ -85,11 +92,8 @@ public class MySqlDatabaseClient implements DatabaseClient {
 
         String tableName = tableAnnotation.name();
         Field idField = getIdField(clazz);
-        if (idField == null) {
-            throw new DatabaseException("No field annotated with @Id in class: " + clazz.getName());
-        }
-
         idField.setAccessible(true);
+
         Object idValue;
         try {
             idValue = idField.get(entity);
@@ -97,84 +101,90 @@ public class MySqlDatabaseClient implements DatabaseClient {
             throw new DatabaseException("Unable to access ID field", e);
         }
 
-        try (Connection conn = getConnection()) {
+        Connection conn = null;
+        try {
+            conn = getConnection();
             if (idValue == null || (idValue instanceof Number && ((Number) idValue).longValue() == 0)) {
-                // INSERT
-                List<String> columns = new ArrayList<>();
-                List<String> placeholders = new ArrayList<>();
-                List<Object> values = new ArrayList<>();
-
-                for (Field field : clazz.getDeclaredFields()) {
-                    field.setAccessible(true);
-                    if (field.isAnnotationPresent(Id.class)) {
-                        continue; // skip ID for auto-generated insert
-                    }
-                    Column col = field.getAnnotation(Column.class);
-                    if (col != null) {
-                        columns.add(col.name());
-                        placeholders.add("?");
-                        values.add(field.get(entity));
-                    }
-                }
-
-                String sql = "INSERT INTO " + tableName +
-                        " (" + String.join(", ", columns) + ") " +
-                        "VALUES (" + String.join(", ", placeholders) + ")";
-                try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-                    setPreparedStatementValues(stmt, values);
-                    stmt.executeUpdate();
-
-                    // Retrieve and assign the generated ID
-                    try (ResultSet keys = stmt.getGeneratedKeys()) {
-                        if (keys.next()) {
-                            Object generatedId = keys.getObject(1);
-                            idField.set(entity, convertToFieldType(generatedId, idField.getType()));
-                        }
-                    }
-                }
+                insert(entity, clazz, tableName, idField, conn);
             } else {
-                // UPDATE
-                List<String> sets = new ArrayList<>();
-                List<Object> values = new ArrayList<>();
-
-                for (Field field : clazz.getDeclaredFields()) {
-                    field.setAccessible(true);
-                    if (field.isAnnotationPresent(Id.class)) {
-                        continue;
-                    }
-                    Column col = field.getAnnotation(Column.class);
-                    if (col != null) {
-                        sets.add(col.name() + " = ?");
-                        values.add(field.get(entity));
-                    }
-                }
-
-                String sql = "UPDATE " + tableName + " SET " +
-                        String.join(", ", sets) +
-                        " WHERE " + idField.getAnnotation(Column.class).name() + " = ?";
-                values.add(idValue);
-
-                try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-                    setPreparedStatementValues(stmt, values);
-                    stmt.executeUpdate();
-                }
+                update(entity, clazz, tableName, idField, idValue, conn);
             }
         } catch (SQLException | IllegalAccessException e) {
             throw new DatabaseException("Failed to save entity", e);
+        } finally {
+            releaseConnection(conn);
+        }
+    }
+
+    private <T> void insert(T entity, Class<?> clazz, String tableName, Field idField, Connection conn)
+            throws SQLException, IllegalAccessException {
+        List<String> columns = new ArrayList<>();
+        List<String> placeholders = new ArrayList<>();
+        List<Object> values = new ArrayList<>();
+
+        for (Field field : clazz.getDeclaredFields()) {
+            field.setAccessible(true);
+            if (field.isAnnotationPresent(Id.class)) {
+                continue;
+            }
+            Column col = field.getAnnotation(Column.class);
+            if (col != null) {
+                columns.add(col.name());
+                placeholders.add("?");
+                values.add(field.get(entity));
+            }
+        }
+
+        String sql = "INSERT INTO " + tableName + " (" + String.join(", ", columns) + ") VALUES (" +
+                String.join(", ", placeholders) + ")";
+        try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            setPreparedStatementValues(stmt, values);
+            stmt.executeUpdate();
+            try (ResultSet keys = stmt.getGeneratedKeys()) {
+                if (keys.next()) {
+                    Object generatedId = keys.getObject(1);
+                    idField.set(entity, convertToFieldType(generatedId, idField.getType()));
+                }
+            }
+        }
+    }
+
+    private <T> void update(T entity, Class<?> clazz, String tableName, Field idField, Object idValue, Connection conn)
+            throws SQLException, IllegalAccessException {
+        List<String> sets = new ArrayList<>();
+        List<Object> values = new ArrayList<>();
+
+        for (Field field : clazz.getDeclaredFields()) {
+            field.setAccessible(true);
+            if (field.isAnnotationPresent(Id.class)) {
+                continue;
+            }
+            Column col = field.getAnnotation(Column.class);
+            if (col != null) {
+                sets.add(col.name() + " = ?");
+                values.add(field.get(entity));
+            }
+        }
+
+        String sql = "UPDATE " + tableName + " SET " + String.join(", ", sets) +
+                " WHERE " + idField.getAnnotation(Column.class).name() + " = ?";
+        values.add(idValue);
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            setPreparedStatementValues(stmt, values);
+            stmt.executeUpdate();
         }
     }
 
     @Override
     public <T> void updateById(T entity) {
+        Connection conn = null;
         try {
             Class<?> clazz = entity.getClass();
             String table = getTableName(clazz);
-
             Field idField = getIdField(clazz);
             idField.setAccessible(true);
             Object idValue = idField.get(entity);
             String idColumn = getColumnName(idField);
-
             List<String> assignments = new ArrayList<>();
             List<Object> values = new ArrayList<>();
 
@@ -186,51 +196,59 @@ public class MySqlDatabaseClient implements DatabaseClient {
             }
 
             String sql = "UPDATE " + table + " SET " + String.join(",", assignments) + " WHERE " + idColumn + " = ?";
-            try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            conn = getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
                 for (int i = 0; i < values.size(); i++) {
                     stmt.setObject(i + 1, values.get(i));
                 }
                 stmt.setObject(values.size() + 1, idValue);
                 stmt.executeUpdate();
             }
-
         } catch (Exception e) {
             throw new DatabaseException("Failed to update entity", e);
+        } finally {
+            releaseConnection(conn);
         }
     }
 
     @Override
     public <T> void deleteById(Class<T> clazz, Object id) {
+        Connection conn = null;
         try {
-            Field idField = getIdField(clazz); // assume this uses reflection
+            Field idField = getIdField(clazz);
             Class<?> expectedType = idField.getType();
             if (!expectedType.isInstance(id)) {
                 throw new IllegalArgumentException("Invalid ID type: expected " + expectedType.getSimpleName());
             }
-
             String table = getTableName(clazz);
             String idColumn = getColumnName(idField);
-
             String sql = "DELETE FROM " + table + " WHERE " + idColumn + " = ?";
-            try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            conn = getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
                 stmt.setObject(1, id);
                 stmt.executeUpdate();
             }
         } catch (Exception e) {
             throw new DatabaseException("Failed to delete by ID", e);
+        } finally {
+            releaseConnection(conn);
         }
     }
 
     @Override
     public <T> void deleteAll(Class<T> clazz) {
+        Connection conn = null;
         try {
             String table = getTableName(clazz);
             String sql = "DELETE FROM " + table;
-            try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            conn = getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
                 stmt.executeUpdate();
             }
         } catch (Exception e) {
             throw new DatabaseException("Failed to delete all records", e);
+        } finally {
+            releaseConnection(conn);
         }
     }
 
@@ -238,9 +256,7 @@ public class MySqlDatabaseClient implements DatabaseClient {
     public <T> List<T> findAll(Class<T> entityType, PageRequest pageRequest) {
         try {
             validateFieldNames(entityType, pageRequest.getFilters());
-            // continue with building query and execution
         } catch (IllegalArgumentException ex) {
-            // Optional: log and return empty list instead of failing
             return Collections.emptyList();
         } catch (Exception e) {
             throw new RuntimeException("Failed to fetch paginated results", e);
@@ -249,12 +265,9 @@ public class MySqlDatabaseClient implements DatabaseClient {
         String tableName = getTableName(entityType);
         List<String> whereClauses = new ArrayList<>();
         List<Object> parameters = new ArrayList<>();
-
-        // Build WHERE clause with optional LIKE handling
         for (Map.Entry<String, Object> entry : pageRequest.getFilters().entrySet()) {
             String field = entry.getKey();
             Object value = entry.getValue();
-
             if (pageRequest.getLikeFields().contains(field)) {
                 whereClauses.add(field + " LIKE ?");
                 parameters.add("%" + value + "%");
@@ -265,47 +278,41 @@ public class MySqlDatabaseClient implements DatabaseClient {
         }
 
         StringBuilder sql = new StringBuilder("SELECT * FROM ").append(tableName);
-
         if (!whereClauses.isEmpty()) {
             sql.append(" WHERE ").append(String.join(" AND ", whereClauses));
         }
-
-        // Add sorting
-        // Add ORDER BY clause
-        String orderClause = "";
         if (pageRequest.getSortBy() != null) {
             String[] sortParts = pageRequest.getSortBy().split(",");
-            String sortField = sortParts[0];
-
+            String sortField = sortParts[0].trim();
             if (!isValidField(entityType, sortField)) {
                 throw new IllegalArgumentException("Invalid sort field: " + sortField);
             }
-            String direction = (sortParts.length > 1 && "desc".equalsIgnoreCase(sortParts[1])) ? " DESC" : " ASC";
-            orderClause = " ORDER BY " + sortField + direction;
-            sql.append(orderClause);
+            String direction = (sortParts.length > 1 && "desc".equalsIgnoreCase(sortParts[1].trim())) ? " DESC" : " ASC";
+            sql.append(" ORDER BY ").append(sortField).append(direction);
         }
-
-        // Add pagination (LIMIT + OFFSET)
         sql.append(" LIMIT ? OFFSET ?");
         parameters.add(pageRequest.getSize());
         parameters.add(pageRequest.getPage() * pageRequest.getSize());
 
-        try (Connection connection = getConnection();
-             PreparedStatement stmt = connection.prepareStatement(sql.toString())) {
-
-            for (int i = 0; i < parameters.size(); i++) {
-                stmt.setObject(i + 1, parameters.get(i));
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+                for (int i = 0; i < parameters.size(); i++) {
+                    stmt.setObject(i + 1, parameters.get(i));
+                }
+                try (ResultSet rs = stmt.executeQuery()) {
+                    List<T> results = new ArrayList<>();
+                    while (rs.next()) {
+                        results.add(mapResultSetToObject(entityType, rs));
+                    }
+                    return results;
+                }
             }
-
-            ResultSet rs = stmt.executeQuery();
-            List<T> results = new ArrayList<>();
-            while (rs.next()) {
-                results.add(mapResultSetToObject(entityType, rs));
-            }
-            return results;
-
         } catch (Exception e) {
             throw new RuntimeException("Failed to fetch paginated results", e);
+        } finally {
+            releaseConnection(conn);
         }
     }
 
@@ -313,16 +320,19 @@ public class MySqlDatabaseClient implements DatabaseClient {
     public boolean existsBy(Class<?> entityType, String fieldName, Object value) {
         String table = getTableName(entityType);
         String sql = "SELECT 1 FROM " + table + " WHERE " + fieldName + " = ? LIMIT 1";
-
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setObject(1, value);
-            try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next();
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setObject(1, value);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    return rs.next();
+                }
             }
         } catch (Exception e) {
             throw new RuntimeException("Failed to execute existsBy", e);
+        } finally {
+            releaseConnection(conn);
         }
     }
 
@@ -330,20 +340,33 @@ public class MySqlDatabaseClient implements DatabaseClient {
     public long countBy(Class<?> entityType, String fieldName, Object value) {
         String table = getTableName(entityType);
         String sql = "SELECT COUNT(*) FROM " + table + " WHERE " + fieldName + " = ?";
-
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setObject(1, value);
-            try (ResultSet rs = stmt.executeQuery()) {
-                return rs.next() ? rs.getLong(1) : 0L;
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setObject(1, value);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    return rs.next() ? rs.getLong(1) : 0L;
+                }
             }
         } catch (Exception e) {
             throw new RuntimeException("Failed to execute countBy", e);
+        } finally {
+            releaseConnection(conn);
         }
     }
 
-    // ===== Helper Methods =====
+    private Connection getConnection() throws SQLException {
+        return connectionProvider.getConnection();
+    }
+
+    private void releaseConnection(Connection connection) {
+        try {
+            connectionProvider.releaseConnection(connection);
+        } catch (SQLException e) {
+            throw new DatabaseException("Failed to release MySQL connection", e);
+        }
+    }
 
     private boolean isValidField(Class<?> clazz, String fieldName) {
         for (Field field : clazz.getDeclaredFields()) {
@@ -393,33 +416,15 @@ public class MySqlDatabaseClient implements DatabaseClient {
 
     private Object convertToFieldType(Object value, Class<?> targetType) {
         if (value == null) return null;
-        if (targetType.isAssignableFrom(value.getClass())) {
-            return value;
-        }
-        if (targetType == int.class || targetType == Integer.class) {
-            return ((Number) value).intValue();
-        } else if (targetType == long.class || targetType == Long.class) {
-            return ((Number) value).longValue();
-        } else if (targetType == String.class) {
-            return value.toString();
-        }
-        // Add more type conversions if needed
+        if (targetType.isAssignableFrom(value.getClass())) return value;
+        if (targetType == int.class || targetType == Integer.class) return ((Number) value).intValue();
+        if (targetType == long.class || targetType == Long.class) return ((Number) value).longValue();
+        if (targetType == String.class) return value.toString();
         return value;
     }
 
-    private Connection getConnection() throws SQLException {
-        String url = config.get("database.url");
-        String username = config.get("database.username");
-        String password = config.get("database.password");
-
-        return DriverManager.getConnection(url, username, password);
-    }
-
     private void validateFieldNames(Class<?> entityType, Map<String, Object> filters) {
-        Set<String> validFields = Arrays.stream(entityType.getDeclaredFields())
-                .map(Field::getName)
-                .collect(Collectors.toSet());
-
+        Set<String> validFields = Arrays.stream(entityType.getDeclaredFields()).map(Field::getName).collect(Collectors.toSet());
         for (String field : filters.keySet()) {
             if (!validFields.contains(field)) {
                 throw new IllegalArgumentException("Unknown field in filter: " + field);

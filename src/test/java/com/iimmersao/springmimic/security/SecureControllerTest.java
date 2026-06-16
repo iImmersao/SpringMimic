@@ -23,7 +23,15 @@ import static org.junit.jupiter.api.Assertions.*;
 @SuppressWarnings(value = "unused")
 public class SecureControllerTest {
 
+    private static void closeDatabaseClient() throws Exception {
+        if (databaseClient instanceof AutoCloseable closeable) {
+            closeable.close();
+        }
+    }
+
     private static WebServer server;
+    private static DatabaseClient databaseClient;
+    private static HttpClient client;
     private static final int port = 8081; // Use a unique port if your main app uses 8080
 
     @BeforeAll
@@ -32,7 +40,7 @@ public class SecureControllerTest {
         ConfigLoader config = new ConfigLoader();
         realContext.registerBean(ConfigLoader.class, config);
         // Create the appropriate DatabaseClient
-        DatabaseClient databaseClient;
+
         String dbType = config.get("db.type", "mysql").toLowerCase();
         switch (dbType) {
             case "mongo", "mongodb" -> databaseClient = new MongoDatabaseClient(config);
@@ -51,14 +59,17 @@ public class SecureControllerTest {
         realContext.injectDependencies();
         server = realContext.getBean(WebServer.class);
         server.start(1000, false);
+        client = HttpClient.newHttpClient();
 
         // Give the server a moment to bind the port
         Thread.sleep(500);
     }
 
     @AfterAll
-    void tearDown() {
+    void tearDown() throws Exception {
         server.stop();
+        closeDatabaseClient();
+        client.close();
         System.out.println("Test server stopped");
     }
 
@@ -76,14 +87,13 @@ public class SecureControllerTest {
     }
 
     private String encodeBasicAuth(String username, String password) {
-        String creds = username + ":" + password;
-        return "Basic " + Base64.getEncoder().encodeToString(creds.getBytes());
+        String credentials = username + ":" + password;
+        return "Basic " + Base64.getEncoder().encodeToString(credentials.getBytes());
     }
 
     @Test
     void shouldAllowAccessWithValidCredentials() throws Exception {
         HttpRequest request = createRequest("/secure", "GET", encodeBasicAuth("user", "user123"));
-        HttpClient client = HttpClient.newHttpClient();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
         assertEquals(200, response.statusCode());
@@ -93,7 +103,6 @@ public class SecureControllerTest {
     @Test
     void shouldDenyAccessWithoutAuthHeader() throws Exception {
         HttpRequest request = createRequest("/secure", "GET", null);
-        HttpClient client = HttpClient.newHttpClient();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
         assertEquals(401, response.statusCode());
@@ -102,8 +111,7 @@ public class SecureControllerTest {
 
     @Test
     void shouldDenyAccessWithInvalidCredentials() throws Exception {
-        HttpRequest request = createRequest("/secure", "GET", encodeBasicAuth("bad", "badpass"));
-        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = createRequest("/secure", "GET", encodeBasicAuth("bad", "bad-password"));
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
         assertEquals(401, response.statusCode());
@@ -113,7 +121,6 @@ public class SecureControllerTest {
     @Test
     void shouldDenyAccessToAdminEndpointForUserRole() throws Exception {
         HttpRequest request = createRequest("/admin", "GET", encodeBasicAuth("user", "user123"));
-        HttpClient client = HttpClient.newHttpClient();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
         assertEquals(403, response.statusCode());
@@ -123,7 +130,6 @@ public class SecureControllerTest {
     @Test
     void shouldAllowAccessToAdminEndpointWithAdminRole() throws Exception {
         HttpRequest request = createRequest("/admin", "GET", encodeBasicAuth("admin", "admin123"));
-        HttpClient client = HttpClient.newHttpClient();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
         assertEquals(200, response.statusCode());

@@ -69,6 +69,20 @@ public class RouteHandlerTest {
         return new String(dataStream.readAllBytes(), StandardCharsets.UTF_8);
     }
 
+    private void assertWithResponse(
+            RouteHandler handler,
+            NanoHTTPD.IHTTPSession session,
+            Matcher matcher,
+            ResponseAssertion assertion) throws Exception {
+        try (Response response = handler.handle(session, matcher)) {
+            assertion.accept(response);
+        }
+    }
+
+    @FunctionalInterface
+    private interface ResponseAssertion {
+        void accept(Response response) throws Exception;
+    }
 
     private NanoHTTPD.IHTTPSession createMockSession(String method, String uri, String bodyJson, String queryString) {
         NanoHTTPD.IHTTPSession session = mock(NanoHTTPD.IHTTPSession.class);
@@ -126,17 +140,17 @@ public class RouteHandlerTest {
         RouteHandler handler = routeHandlerFactory.create("GET", "/users/{id}", controller, method, params);
 
         Matcher matcher = matchUri("/users/{id}", "/users/abc123");
-        Response response = handler.handle(session, matcher);
-
-        assertEquals(Response.Status.OK.getRequestStatus(), response.getStatus().getRequestStatus());
-        assertEquals("text/plain", response.getMimeType());
-        String body = extractResponseBody(response);
-        assertEquals("User ID: abc123, verbose=true", body.trim());
+        assertWithResponse(handler, session, matcher, response -> {
+            assertEquals(Response.Status.OK.getRequestStatus(), response.getStatus().getRequestStatus());
+            assertEquals("text/plain", response.getMimeType());
+            String body = extractResponseBody(response);
+            assertEquals("User ID: abc123, verbose=true", body.trim());
+        });
     }
 
     @Test
     void shouldReturnBadRequestForInvalidBooleanParam() throws Exception {
-        NanoHTTPD.IHTTPSession session = createMockSession("GET","/users/abc123", null, "verbose=notabool");
+        NanoHTTPD.IHTTPSession session = createMockSession("GET","/users/abc123", null, "verbose=not-a-boolean");
 
         TestController controller = new TestController();
         Method method = controller.getClass().getMethod("getUser", String.class, boolean.class);
@@ -144,9 +158,8 @@ public class RouteHandlerTest {
         RouteHandler handler = routeHandlerFactory.create("GET", "/users/{id}", controller, method, params);
 
         Matcher matcher = matchUri("/users/{id}", "/users/abc123");
-        Response response = handler.handle(session, matcher);
-
-        assertEquals(Response.Status.BAD_REQUEST.getRequestStatus(), response.getStatus().getRequestStatus());
+        assertWithResponse(handler, session, matcher, response ->
+                assertEquals(Response.Status.BAD_REQUEST.getRequestStatus(), response.getStatus().getRequestStatus()));
     }
 
     @Test
@@ -159,9 +172,8 @@ public class RouteHandlerTest {
         RouteHandler handler = routeHandlerFactory.create("GET", "/users/{id}", controller, method, params);
 
         Matcher matcher = matchUri("/users/{id}", "/users/abc123");
-        Response response = handler.handle(session, matcher);
-
-        assertEquals(Response.Status.BAD_REQUEST.getRequestStatus(), response.getStatus().getRequestStatus());
+        assertWithResponse(handler, session, matcher, response ->
+                assertEquals(Response.Status.BAD_REQUEST.getRequestStatus(), response.getStatus().getRequestStatus()));
     }
 
     @Test
@@ -175,11 +187,11 @@ public class RouteHandlerTest {
         RouteHandler handler = routeHandlerFactory.create("POST", "/users", controller, method, params);
 
         Matcher matcher = matchUri("/users", "/users");
-        Response response = handler.handle(session, matcher);
-
-        assertEquals(Response.Status.OK.getRequestStatus(), response.getStatus().getRequestStatus());
-        String body = extractResponseBody(response);
-        assertTrue(body.contains("Alice"));
+        assertWithResponse(handler, session, matcher, response -> {
+            assertEquals(Response.Status.OK.getRequestStatus(), response.getStatus().getRequestStatus());
+            String body = extractResponseBody(response);
+            assertTrue(body.contains("Alice"));
+        });
     }
 
     @Test
@@ -195,9 +207,8 @@ public class RouteHandlerTest {
         Matcher matcher = matchUri("/users", "/users");
         assertTrue(matcher.matches());
 
-        Response response = handler.handle(session, matcher);
-
-        assertEquals(Response.Status.BAD_REQUEST.getRequestStatus(), response.getStatus().getRequestStatus());
+        assertWithResponse(handler, session, matcher, response ->
+                assertEquals(Response.Status.BAD_REQUEST.getRequestStatus(), response.getStatus().getRequestStatus()));
     }
 
     @Test
@@ -213,10 +224,11 @@ public class RouteHandlerTest {
         Matcher matcher = matchUri("/users", "/users");
         assertTrue(matcher.matches());
 
-        Response response = handler.handle(session, matcher);
-        assertEquals(Response.Status.OK, response.getStatus());
-        String body = extractResponseBody(response);
-        assertTrue(body.contains("Created user: John"));
+        assertWithResponse(handler, session, matcher, response -> {
+            assertEquals(Response.Status.OK, response.getStatus());
+            String body = extractResponseBody(response);
+            assertTrue(body.contains("Created user: John"));
+        });
     }
 
     @Test
@@ -232,10 +244,11 @@ public class RouteHandlerTest {
         Matcher matcher = matchUri("/users", "/users");
         assertTrue(matcher.matches());
 
-        Response response = handler.handle(session, matcher);
-        assertEquals(Response.Status.OK, response.getStatus());
-        String body = extractResponseBody(response);
-        assertTrue(body.contains("Updated user: Jane"));
+        assertWithResponse(handler, session, matcher, response -> {
+            assertEquals(Response.Status.OK, response.getStatus());
+            String body = extractResponseBody(response);
+            assertTrue(body.contains("Updated user: Jane"));
+        });
     }
 
     @Test
@@ -251,10 +264,11 @@ public class RouteHandlerTest {
         Matcher matcher = matchUri("/users", "/users");
         assertTrue(matcher.matches());
 
-        Response response = handler.handle(session, matcher);
-        assertEquals(Response.Status.OK, response.getStatus());
-        String body = extractResponseBody(response);
-        assertTrue(body.contains("Patched user: Mike"));
+        assertWithResponse(handler, session, matcher, response -> {
+            assertEquals(Response.Status.OK, response.getStatus());
+            String body = extractResponseBody(response);
+            assertTrue(body.contains("Patched user: Mike"));
+        });
     }
 
     @Test
@@ -269,9 +283,10 @@ public class RouteHandlerTest {
         Matcher matcher = matchUri("/users/{id}", "/users/abc123");
         assertTrue(matcher.matches());
 
-        Response response = handler.handle(session, matcher);
-        assertEquals(Response.Status.OK, response.getStatus());
-        String body = extractResponseBody(response);
-        assertTrue(body.contains("Deleted user with ID: abc123"));
+        assertWithResponse(handler, session, matcher, response -> {
+            assertEquals(Response.Status.OK, response.getStatus());
+            String body = extractResponseBody(response);
+            assertTrue(body.contains("Deleted user with ID: abc123"));
+        });
     }
 }

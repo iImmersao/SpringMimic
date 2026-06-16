@@ -18,15 +18,14 @@ public class OpenApiGenerator {
         info.put("version", "1.0.0");
         root.put("info", info);
 
-        Map<String, Object> paths = new LinkedHashMap<>();
+        Map<String, Map<String, Object>> paths = new LinkedHashMap<>();
 
         for (Router.RouteEntry entry : router.getRoutes()) {
             String path = entry.path();
             String method = entry.httpMethod().toLowerCase(); // e.g. get, post, etc.
             RouteHandler handler = entry.handler();
 
-            Map<String, Object> pathItem = (Map<String, Object>) paths
-                    .computeIfAbsent(path, k -> new LinkedHashMap<>());
+            Map<String, Object> pathItem = paths.computeIfAbsent(path, k -> new LinkedHashMap<>());
 
             Map<String, Object> operation = new LinkedHashMap<>();
             operation.put("summary", "Handler for " + entry.httpMethod() + " " + path);

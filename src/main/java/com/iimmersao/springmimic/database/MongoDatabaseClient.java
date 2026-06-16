@@ -19,15 +19,16 @@ import java.util.*;
 import static com.mongodb.client.model.Filters.eq;
 
 @Bean
-public class MongoDatabaseClient implements DatabaseClient {
+public class MongoDatabaseClient implements DatabaseClient, AutoCloseable {
 
+    private final MongoClient client;
     private final MongoDatabase database;
 
     public MongoDatabaseClient(ConfigLoader config) {
         try {
             String uri = config.get("mongodb.uri");
             String dbName = config.get("mongodb.database");
-            MongoClient client = MongoClients.create(uri);
+            this.client = MongoClients.create(uri);
             this.database = client.getDatabase(dbName);
         } catch (Exception e) {
             throw new DatabaseException("Failed to connect to MongoDB", e);
@@ -193,7 +194,9 @@ public class MongoDatabaseClient implements DatabaseClient {
         String collectionName = getCollectionName(entityType);
         MongoCollection<Document> collection = database.getCollection(collectionName);
         Document filter = new Document(fieldName, value);
-        return collection.find(filter).limit(1).iterator().hasNext();
+        try (MongoCursor<Document> cursor = collection.find(filter).limit(1).iterator()) {
+            return cursor.hasNext();
+        }
     }
 
     @Override
@@ -276,6 +279,11 @@ public class MongoDatabaseClient implements DatabaseClient {
         } else {
             throw new IllegalArgumentException("Unsupported ID type: " + id.getClass());
         }
+    }
+
+    @Override
+    public void close() {
+        client.close();
     }
 
     private boolean isInvalidObjectId(Object id) {

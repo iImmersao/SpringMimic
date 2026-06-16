@@ -6,10 +6,12 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.iimmersao.springmimic.core.ConfigLoader;
 import fi.iki.elonen.NanoHTTPD;
 import org.junit.jupiter.api.*;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 @SuppressWarnings(value = "unused")
 class RestClientTest {
@@ -95,6 +97,15 @@ class RestClientTest {
         assertTrue(ex.getMessage().contains("HTTP 500"));
     }
 
+    @Test
+    void shouldApplyConfiguredDefaultHeaders() throws IOException {
+        RestClient configuredClient = new RestClient(new ConfigLoader());
+
+        String result = configuredClient.postRaw(BASE_URL + "/headers", Map.of("name", "Ada")).getBody();
+
+        assertEquals("application/vnd.springmimic-test+json|application/vnd.springmimic-test+json", result);
+    }
+
     // === MOCK SERVER ===
 
     private static class TestServer extends NanoHTTPD {
@@ -110,6 +121,7 @@ class RestClientTest {
                 return switch (uri) {
                     case "/hello" -> newFixedLengthResponse("Hello World");
                     case "/echo", "/modify", "/update" -> withBodyEcho(session);
+                    case "/headers" -> withHeaderEcho(session);
                     case "/remove" -> newFixedLengthResponse("Deleted");
                     case "/notfound" -> newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "Not found");
                     case "/error" ->
@@ -132,6 +144,23 @@ class RestClientTest {
             String body = new String(bodyBytes, StandardCharsets.UTF_8);
 
             return newFixedLengthResponse(Response.Status.OK, "application/json", body);
+        }
+
+        private Response withHeaderEcho(IHTTPSession session) throws IOException {
+            readBody(session);
+            Map<String, String> headers = session.getHeaders();
+            String accept = headers.getOrDefault("accept", "");
+            String contentType = headers.getOrDefault("content-type", "");
+            return newFixedLengthResponse(Response.Status.OK, "text/plain", accept + "|" + contentType);
+        }
+
+        private byte[] readBody(IHTTPSession session) throws IOException {
+            int contentLength = 0;
+            String len = session.getHeaders().get("content-length");
+            if (len != null) {
+                contentLength = Integer.parseInt(len);
+            }
+            return session.getInputStream().readNBytes(contentLength);
         }
     }
 }

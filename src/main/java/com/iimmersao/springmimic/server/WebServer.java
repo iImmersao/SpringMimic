@@ -36,6 +36,7 @@ public class WebServer extends NanoHTTPD {
     public WebServer(Port port, Router router) {
         super(port.getPortNo());
         this.router = router;
+        setTempFileManagerFactory(new SecureTempFileManagerFactory());
     }
 
     @Override

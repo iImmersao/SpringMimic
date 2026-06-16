@@ -18,12 +18,17 @@ import static org.junit.jupiter.api.Assertions.*;
 @SuppressWarnings(value = "unused")
 public class MongoDatabaseClientTest {
 
-    private DatabaseClient mongoClient;
+    private MongoDatabaseClient mongoClient;
 
     @BeforeAll
     void setup() {
         ConfigLoader configLoader = new ConfigLoader("application-mongodb.properties"); // or your test config file path
         mongoClient = new MongoDatabaseClient(configLoader);
+    }
+
+    @AfterAll
+    void tearDown() {
+        mongoClient.close();
     }
 
     @BeforeEach
