@@ -1,6 +1,9 @@
 package com.iimmersao.springmimic;
 
 import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.Appender;
+import ch.qos.logback.core.FileAppender;
 import com.iimmersao.springmimic.annotations.ComponentScan;
 import com.iimmersao.springmimic.client.RestClient;
 import com.iimmersao.springmimic.core.ApplicationContext;
@@ -19,9 +22,9 @@ import com.iimmersao.springmimic.transaction.JdbcTransactionManager;
 import com.iimmersao.springmimic.transaction.TransactionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 
 public class SpringMimicApplicationRunner {
@@ -43,15 +46,7 @@ public class SpringMimicApplicationRunner {
             // Load configuration
             ConfigLoader config = new ConfigLoader();
             context.registerBean(ConfigLoader.class, config);
-            String level = config.get("logging.level");
-            if (level != null) System.setProperty("LOG_LEVEL", level.trim());
-
-            String outputFile = config.get("logging.file");
-            if (outputFile != null) System.setProperty("LOG_FILE", outputFile.trim());
-
-            LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
-            loggerContext.getLogger("root")
-                    .setLevel(ch.qos.logback.classic.Level.convertAnSLF4JLevel(Level.valueOf(level)));
+            configureLogging(config);
 
             System.out.println("Setting up database access");
             DatabaseSetup databaseSetup = createDatabaseSetup(config);
@@ -78,7 +73,7 @@ public class SpringMimicApplicationRunner {
 
             Port port = new Port(config.getInt("server.port", 8080));
             springMimicContext.registerBean(Port.class, port);
-            RestClient restClient = new RestClient();
+            RestClient restClient = new RestClient(config);
             springMimicContext.registerBean(RestClient.class, restClient);
             springMimicContext.initialize(null);
             System.out.println("Initialised SpringMimic context");
@@ -140,6 +135,57 @@ public class SpringMimicApplicationRunner {
             } catch (Exception e) {
                 log.warn("Failed to close resource {}", resource.getClass().getName(), e);
             }
+        }
+    }
+
+    private static void configureLogging(ConfigLoader config) {
+        String level = config.get("logging.level", "INFO").trim().toUpperCase(Locale.ROOT);
+        String output = loggingOutput(config);
+        String outputFile = config.get("logging.file", "logs/app.log").trim();
+
+        System.setProperty("LOG_LEVEL", level);
+        System.setProperty("LOG_FILE", outputFile);
+
+        LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+        ch.qos.logback.classic.Logger rootLogger = loggerContext.getLogger(Logger.ROOT_LOGGER_NAME);
+        rootLogger.setLevel(ch.qos.logback.classic.Level.toLevel(level, ch.qos.logback.classic.Level.INFO));
+
+        configureFileAppender(rootLogger, outputFile);
+        configureAppender(rootLogger, "CONSOLE", output.equals("console") || output.equals("both"));
+        configureAppender(rootLogger, "FILE", output.equals("file") || output.equals("both"));
+    }
+
+    private static String loggingOutput(ConfigLoader config) {
+        String output = config.get("logging.output", "both").trim().toLowerCase(Locale.ROOT);
+        return switch (output) {
+            case "console", "file", "both" -> output;
+            default -> "both";
+        };
+    }
+
+    private static void configureFileAppender(ch.qos.logback.classic.Logger rootLogger, String outputFile) {
+        Appender<ILoggingEvent> appender = rootLogger.getAppender("FILE");
+        if (appender instanceof FileAppender<ILoggingEvent> fileAppender) {
+            fileAppender.stop();
+            fileAppender.setFile(outputFile);
+            fileAppender.start();
+        }
+    }
+
+    private static void configureAppender(
+            ch.qos.logback.classic.Logger rootLogger,
+            String appenderName,
+            boolean enabled) {
+        Appender<ILoggingEvent> appender = rootLogger.getAppender(appenderName);
+        if (appender == null) {
+            return;
+        }
+        if (enabled) {
+            if (!rootLogger.isAttached(appender)) {
+                rootLogger.addAppender(appender);
+            }
+        } else {
+            rootLogger.detachAppender(appenderName);
         }
     }
 

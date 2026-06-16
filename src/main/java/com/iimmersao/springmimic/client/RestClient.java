@@ -11,7 +11,6 @@ import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -43,11 +42,20 @@ public class RestClient {
             this.maxRetries = 0;
             this.retryDelayMillis = 1000;
         } else {
-            this.defaultHeaders = config.getSubProperties("restclient.defaultHeaders.", Set.of("Accept", "Content-Type"));
+            this.defaultHeaders = new HashMap<>();
+            addConfiguredDefaultHeader(config, "Accept", "restclient.defaultHeaders.Accept");
+            addConfiguredDefaultHeader(config, "Content-Type", "restclient.defaultHeaders.Content-Type");
             this.connectTimeoutMillis = config.getInt("restclient.connectTimeoutMillis", 5000);
             this.readTimeoutMillis = config.getInt("restclient.readTimeoutMillis", 5000);
             this.maxRetries = config.getInt("restclient.maxRetries", 0);
             this.retryDelayMillis = config.getInt("restclient.retryDelayMillis", 1000);
+        }
+    }
+
+    private void addConfiguredDefaultHeader(ConfigLoader config, String headerName, String propertyKey) {
+        String value = config.get(propertyKey);
+        if (value != null && !value.isBlank()) {
+            defaultHeaders.put(headerName, value);
         }
     }
 
