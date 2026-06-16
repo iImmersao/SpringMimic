@@ -45,6 +45,7 @@ public class RequiresNewServiceImpl implements RequiresNewService {
     }
 
     @Override
+    @SuppressWarnings("resource")
     @Transactional(isolation = Isolation.SERIALIZABLE)
     public int serializableIsolationLevel() {
         try {

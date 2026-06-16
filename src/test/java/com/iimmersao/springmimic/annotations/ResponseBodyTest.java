@@ -19,9 +19,16 @@ import static org.junit.jupiter.api.Assertions.*;
 @SuppressWarnings(value = "unused")
 class ResponseBodyTest {
 
+    private static void closeDatabaseClient() throws Exception {
+        if (databaseClient instanceof AutoCloseable closeable) {
+            closeable.close();
+        }
+    }
+
     private static final String BASE_URL = "http://localhost:8080";
     private static HttpClient client;
     private static WebServer server;
+    private static DatabaseClient databaseClient;
     private static final int port = 8080; // Use a unique port if your main app uses 8080
 
     @BeforeAll
@@ -31,7 +38,7 @@ class ResponseBodyTest {
         ConfigLoader config = new ConfigLoader();
         realContext.registerBean(ConfigLoader.class, config);
         // Create the appropriate DatabaseClient
-        DatabaseClient databaseClient;
+
         String dbType = config.get("db.type", "mysql").toLowerCase();
         switch (dbType) {
             case "mongo", "mongodb" -> databaseClient = new MongoDatabaseClient(config);
@@ -56,8 +63,10 @@ class ResponseBodyTest {
     }
 
     @AfterAll
-    static void tearDown() {
+    static void tearDown() throws Exception {
         server.stop();
+        closeDatabaseClient();
+        client.close();
         System.out.println("Test server stopped");
     }
 

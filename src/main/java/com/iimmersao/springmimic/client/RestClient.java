@@ -186,11 +186,9 @@ public class RestClient {
     }
 
     private RestResponse executeRequest(String method, String url, String body, Map<String, String> headers) throws IOException {
-        try {
-            HttpClient client = HttpClient.newBuilder()
-                    .connectTimeout(Duration.ofMillis(connectTimeoutMillis))
-                    .build();
-
+        try (HttpClient client = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofMillis(connectTimeoutMillis))
+                .build()) {
             HttpRequest.Builder builder = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .timeout(Duration.ofMillis(readTimeoutMillis));

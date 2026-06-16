@@ -11,6 +11,7 @@ import com.iimmersao.springmimic.database.MySqlDatabaseClient;
 import com.iimmersao.springmimic.model.UserDTO;
 import com.iimmersao.springmimic.routing.Port;
 import com.iimmersao.springmimic.routing.Router;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -23,6 +24,7 @@ public class UserServiceTest {
 
     @Inject
     private static UserService userService;
+    private static DatabaseClient databaseClient;
 
     @BeforeAll
     static void createService() {
@@ -31,7 +33,7 @@ public class UserServiceTest {
         context.registerBean(ConfigLoader.class, config);
 
         // Create the appropriate DatabaseClient
-        DatabaseClient databaseClient;
+
         String dbType = config.get("db.type", "mysql").toLowerCase();
         switch (dbType) {
             case "mongo", "mongodb" -> databaseClient = new MongoDatabaseClient(config);
@@ -61,6 +63,13 @@ public class UserServiceTest {
         context.injectDependencies();
 
         userService = context.getBean(UserService.class);
+    }
+
+    @AfterAll
+    static void tearDown() throws Exception {
+        if (databaseClient instanceof AutoCloseable closeable) {
+            closeable.close();
+        }
     }
 
     @Test

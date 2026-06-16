@@ -30,6 +30,8 @@ public class SpringMimicApplicationRunner {
     private static boolean running;
 
     public static void run(Class<?> applicationClass) {
+        DatabaseClient databaseClient = null;
+        WebServer server = null;
         try {
             // Create the context for the user-level application
             String basePackage = getBasePackage(applicationClass);
@@ -51,7 +53,7 @@ public class SpringMimicApplicationRunner {
 
             System.out.println("Setting up database access");
             DatabaseSetup databaseSetup = createDatabaseSetup(config);
-            DatabaseClient databaseClient = databaseSetup.databaseClient();
+            databaseClient = databaseSetup.databaseClient();
             TransactionManager transactionManager = databaseSetup.transactionManager();
             System.out.println("Set up DatabaseClient as: " + databaseClient.getClass().getName());
             context.registerDatabaseBean(DatabaseClient.class, databaseClient);
@@ -90,7 +92,7 @@ public class SpringMimicApplicationRunner {
             System.out.println("Injected application dependencies");
 
             // Start the web server
-            WebServer server = context.getBean(WebServer.class);
+            server = context.getBean(WebServer.class);
             server.start();
 
             System.out.println("Server started on port " + port);
@@ -111,11 +113,26 @@ public class SpringMimicApplicationRunner {
         } catch (Exception e) {
             System.err.println("Application failed to start: " + e.getMessage());
             log.error(Arrays.toString(e.getStackTrace()));
+        } finally {
+            if (server != null) {
+                server.stop();
+            }
+            closeQuietly(databaseClient);
         }
     }
 
     public void stop() {
         running = false;
+    }
+
+    private static void closeQuietly(Object resource) {
+        if (resource instanceof AutoCloseable closeable) {
+            try {
+                closeable.close();
+            } catch (Exception e) {
+                log.warn("Failed to close resource {}", resource.getClass().getName(), e);
+            }
+        }
     }
 
     private static DatabaseSetup createDatabaseSetup(ConfigLoader config) {
