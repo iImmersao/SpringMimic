@@ -1,7 +1,6 @@
 package com.iimmersao.springmimic.database.jdbc;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 
 public class SingleConnectionProvider implements JdbcConnectionProvider {
     private final Connection connection;
@@ -16,7 +15,7 @@ public class SingleConnectionProvider implements JdbcConnectionProvider {
     }
 
     @Override
-    public void releaseConnection(Connection connection) throws SQLException {
+    public void releaseConnection(Connection connection) {
         // The owner of the supplied connection controls its lifecycle.
     }
 }

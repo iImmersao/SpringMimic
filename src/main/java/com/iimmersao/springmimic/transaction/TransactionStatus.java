@@ -12,6 +12,7 @@ public class TransactionStatus {
 
     public TransactionContext getContext() { return context; }
     public boolean isNewTransaction() { return newTransaction; }
+    public boolean isParticipatingTransaction() { return context != null && !newTransaction; }
     public boolean isCompleted() { return completed; }
     public void markCompleted() { this.completed = true; }
     public boolean hasTransaction() { return context != null; }

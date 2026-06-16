@@ -53,7 +53,7 @@ public class TransactionalInvocationHandler implements InvocationHandler {
         }
     }
 
-    private void rollback(TransactionStatus status, Throwable original) throws Throwable {
+    private void rollback(TransactionStatus status, Throwable original) {
         try {
             transactionManager.rollback(status);
         } catch (Throwable rollbackFailure) {
@@ -61,7 +61,7 @@ public class TransactionalInvocationHandler implements InvocationHandler {
         }
     }
 
-    private void commit(TransactionStatus status, Throwable original) throws Throwable {
+    private void commit(TransactionStatus status, Throwable original) {
         try {
             transactionManager.commit(status);
         } catch (Throwable commitFailure) {

@@ -26,13 +26,12 @@ public final class TransactionSynchronizationManager {
         CONTEXTS.get().push(context);
     }
 
-    public static TransactionContext unbind() {
+    public static void unbind() {
         Deque<TransactionContext> contexts = CONTEXTS.get();
-        TransactionContext context = contexts.pop();
+        contexts.pop();
         if (contexts.isEmpty()) {
             CONTEXTS.remove();
         }
-        return context;
     }
 
     public static void clear() {

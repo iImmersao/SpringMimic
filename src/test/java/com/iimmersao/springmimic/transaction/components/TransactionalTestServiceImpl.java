@@ -19,38 +19,37 @@ public class TransactionalTestServiceImpl implements TransactionalTestService {
 
     @Override
     @Transactional
-    public Integer createUserThenFail(String username) {
+    public void createUserThenFail(String username) {
         Integer id = saveUser(username);
         throw new IllegalStateException("boom after " + id);
     }
 
     @Override
     @Transactional
-    public Integer createUserThenCheckedFailure(String username) throws TestCheckedException {
+    public void createUserThenCheckedFailure(String username) throws TestCheckedException {
         Integer id = saveUser(username);
         throw new TestCheckedException("checked after " + id);
     }
 
     @Override
     @Transactional(rollbackFor = TestCheckedException.class)
-    public Integer createUserThenRollbackForChecked(String username) throws TestCheckedException {
+    public void createUserThenRollbackForChecked(String username) throws TestCheckedException {
         Integer id = saveUser(username);
         throw new TestCheckedException("checked rollback after " + id);
     }
 
     @Override
     @Transactional(noRollbackFor = IllegalStateException.class)
-    public Integer createUserThenNoRollbackRuntime(String username) {
+    public void createUserThenNoRollbackRuntime(String username) {
         Integer id = saveUser(username);
         throw new IllegalStateException("committed after " + id);
     }
 
     @Override
     @Transactional(timeoutSeconds = 1)
-    public Integer createUserThenTimeout(String username) {
-        Integer id = saveUser(username);
+    public void createUserThenTimeout(String username) {
+        saveUser(username);
         sleepPastTimeout();
-        return id;
     }
 
     private Integer saveUser(String username) {

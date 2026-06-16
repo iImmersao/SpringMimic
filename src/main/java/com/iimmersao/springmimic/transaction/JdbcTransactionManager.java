@@ -44,7 +44,7 @@ public class JdbcTransactionManager implements TransactionManager {
             status.markCompleted();
             return;
         }
-        if (!status.isNewTransaction()) {
+        if (status.isParticipatingTransaction()) {
             if (status.getContext().isTimedOut()) {
                 status.setRollbackOnly();
             }
@@ -64,8 +64,6 @@ public class JdbcTransactionManager implements TransactionManager {
             } else {
                 context.getConnection().commit();
             }
-        } catch (TransactionTimeoutException e) {
-            throw e;
         } catch (SQLException e) {
             throw new TransactionException("Failed to commit JDBC transaction", e);
         } finally {
@@ -80,7 +78,7 @@ public class JdbcTransactionManager implements TransactionManager {
             status.markCompleted();
             return;
         }
-        if (!status.isNewTransaction()) {
+        if (status.isParticipatingTransaction()) {
             status.setRollbackOnly();
             status.markCompleted();
             return;
@@ -99,12 +97,12 @@ public class JdbcTransactionManager implements TransactionManager {
         try {
             Connection connection = connectionProvider.getConnection();
             boolean previousAutoCommit = connection.getAutoCommit();
-            int previousIsolation = connection.getTransactionIsolation();
+            int previousIsolation = getTransactionIsolation(connection);
             boolean previousReadOnly = connection.isReadOnly();
             int timeoutSeconds = resolveTimeoutSeconds(txDefinition);
 
             if (txDefinition.getIsolation() != Isolation.DEFAULT) {
-                connection.setTransactionIsolation(txDefinition.getIsolation().toJdbcLevel(previousIsolation));
+                setTransactionIsolation(connection, txDefinition.getIsolation().toJdbcLevel(previousIsolation));
             }
             if (connection.isReadOnly() != txDefinition.isReadOnly()) {
                 connection.setReadOnly(txDefinition.isReadOnly());
@@ -146,7 +144,7 @@ public class JdbcTransactionManager implements TransactionManager {
         RuntimeException cleanupFailure = null;
         try {
             Connection connection = context.getConnection();
-            connection.setTransactionIsolation(context.getPreviousIsolation());
+            setTransactionIsolation(connection, context.getPreviousIsolation());
             connection.setReadOnly(context.getPreviousReadOnly());
             connection.setAutoCommit(context.getPreviousAutoCommit());
         } catch (SQLException e) {
@@ -183,5 +181,15 @@ public class JdbcTransactionManager implements TransactionManager {
         if (status.isCompleted()) {
             throw new TransactionException("Transaction is already completed");
         }
+    }
+
+    @SuppressWarnings("MagicConstant")
+    private int getTransactionIsolation(Connection connection) throws SQLException {
+        return connection.getTransactionIsolation();
+    }
+
+    @SuppressWarnings("MagicConstant")
+    private void setTransactionIsolation(Connection connection, int isolationLevel) throws SQLException {
+        connection.setTransactionIsolation(isolationLevel);
     }
 }
