@@ -61,11 +61,11 @@ public class TransactionalProxyFactory {
             }
         }
 
-        for (Class<?> iface : beanClass.getInterfaces()) {
-            if (iface.isAnnotationPresent(Transactional.class)) {
+        for (Class<?> interfaceType : beanClass.getInterfaces()) {
+            if (interfaceType.isAnnotationPresent(Transactional.class)) {
                 return true;
             }
-            for (Method method : iface.getMethods()) {
+            for (Method method : interfaceType.getMethods()) {
                 if (method.isAnnotationPresent(Transactional.class)) {
                     return true;
                 }

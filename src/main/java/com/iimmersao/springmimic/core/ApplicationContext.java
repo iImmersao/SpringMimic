@@ -219,8 +219,8 @@ public class ApplicationContext {
             }
 
             Object proxy = proxyFactory.createProxy(bean);
-            for (Class<?> iface : bean.getClass().getInterfaces()) {
-                transactionalProxies.put(iface, proxy);
+            for (Class<?> interfaceType : bean.getClass().getInterfaces()) {
+                transactionalProxies.put(interfaceType, proxy);
             }
         }
 

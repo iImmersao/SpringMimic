@@ -1,6 +1,6 @@
 # Spring Mimic Framework
 
-A lightweight, annotation-driven Java framework inspired by Spring Boot — designed to simplify web development with minimal dependencies. Built to support RESTful APIs, dependency injection, database access (MySQL, MongoDB, H2), component scanning, authentication, and more.
+A lightweight, annotation-driven Java framework inspired by Spring Boot — designed to simplify web development with minimal dependencies. Built to support REST APIs, dependency injection, database access (MySQL, MongoDB, H2), component scanning, authentication, and more.
 
 ---
 
@@ -29,8 +29,9 @@ Install the framework locally:
 
 ```bash
 mvn clean install
+```
 
-
+```xml
 <dependency>
     <groupId>com.iimmersao</groupId>
     <artifactId>springmimic</artifactId>
@@ -40,7 +41,7 @@ mvn clean install
 
 ### 2. Define an Entry Point
 
-```bash
+```java
 @SpringMimicApplication
 @ComponentScan("com.example.myapp")
 public class Main {
@@ -52,7 +53,7 @@ public class Main {
 
 ### 3. Create a Controller
 
-```bash
+```java
 @RestController
 @RequestMapping("/users")
 public class UserController {
@@ -74,7 +75,7 @@ public class UserController {
 
 ### 4. Define a Repository
 
-```bash
+```java
 @Repository
 public interface UserRepository extends CrudRepository<User, String> {
     List<User> findByUsername(String username);
@@ -85,7 +86,7 @@ public interface UserRepository extends CrudRepository<User, String> {
 
 ### 5. Add an Entity
 
-```bash
+```java
 @Entity
 @Table(name = "users")
 public class User {
@@ -101,7 +102,7 @@ public class User {
 
 ### 6. Configure application.properties
 
-```
+```properties
 # Choose an application name and the port that the application will use
 server.name=UserApplication
 server.port=8081
@@ -233,11 +234,11 @@ If SpringMimic sees `@Transactional` on a bean that cannot be proxied, it prints
 
     Maven 3.8+
 
-    MySql
+    MySQL
 
     MongoDB 8.0.11
 
-    MySql 8.0.42
+    MySQL 8.0.42
 
 ## 📜 License
 

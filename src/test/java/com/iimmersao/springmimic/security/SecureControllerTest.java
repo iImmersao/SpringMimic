@@ -87,8 +87,8 @@ public class SecureControllerTest {
     }
 
     private String encodeBasicAuth(String username, String password) {
-        String creds = username + ":" + password;
-        return "Basic " + Base64.getEncoder().encodeToString(creds.getBytes());
+        String credentials = username + ":" + password;
+        return "Basic " + Base64.getEncoder().encodeToString(credentials.getBytes());
     }
 
     @Test
@@ -111,7 +111,7 @@ public class SecureControllerTest {
 
     @Test
     void shouldDenyAccessWithInvalidCredentials() throws Exception {
-        HttpRequest request = createRequest("/secure", "GET", encodeBasicAuth("bad", "badpass"));
+        HttpRequest request = createRequest("/secure", "GET", encodeBasicAuth("bad", "bad-password"));
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
         assertEquals(401, response.statusCode());

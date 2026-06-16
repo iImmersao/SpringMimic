@@ -150,7 +150,7 @@ public class RouteHandlerTest {
 
     @Test
     void shouldReturnBadRequestForInvalidBooleanParam() throws Exception {
-        NanoHTTPD.IHTTPSession session = createMockSession("GET","/users/abc123", null, "verbose=notabool");
+        NanoHTTPD.IHTTPSession session = createMockSession("GET","/users/abc123", null, "verbose=not-a-boolean");
 
         TestController controller = new TestController();
         Method method = controller.getClass().getMethod("getUser", String.class, boolean.class);

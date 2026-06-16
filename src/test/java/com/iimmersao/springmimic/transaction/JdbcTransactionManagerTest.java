@@ -52,8 +52,8 @@ class JdbcTransactionManagerTest {
     void shouldRollbackNewTransaction() {
         TransactionStatus status = transactionManager.begin(TransactionDefinition.defaults());
         H2User user = new H2User();
-        user.setUsername("rolledback");
-        user.setEmail("rolledback@example.com");
+        user.setUsername("rolled-back");
+        user.setEmail("rolled-back@example.com");
 
         client.save(user);
         transactionManager.rollback(status);
