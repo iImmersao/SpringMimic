@@ -6,7 +6,7 @@ import com.iimmersao.springmimic.annotations.GetMapping;
 import com.iimmersao.springmimic.annotations.RolesAllowed;
 
 @Controller
-@SuppressWarnings(value = "unused")
+@SuppressWarnings({"unused", "SameReturnValue"})
 public class SecureController {
 
     @GetMapping("/secure")

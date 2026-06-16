@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public class UserRepositoryTest {
 
     private static DatabaseClient client;
-    private static UserRepository userRepository;
+    private static UserRepository<H2UserEntity, Integer> userRepository;
     private static final String JDBC_URL = "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1";
     private static final String USER = "sa";
     private static final String PASSWORD = "password";
@@ -49,7 +49,12 @@ public class UserRepositoryTest {
         }
 
         RepositoryProxyFactory factory = new RepositoryProxyFactory(client);
-        userRepository = factory.createRepository(UserRepository.class, H2UserEntity.class);
+        userRepository = createUserRepository(factory);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static UserRepository<H2UserEntity, Integer> createUserRepository(RepositoryProxyFactory factory) {
+        return (UserRepository<H2UserEntity, Integer>) factory.createRepository(UserRepository.class, H2UserEntity.class);
     }
 
     @BeforeEach
@@ -62,7 +67,7 @@ public class UserRepositoryTest {
         H2UserEntity user = new H2UserEntity(null, "John", "john@example.com");
         userRepository.save(user);
 
-        BaseUserEntity result = userRepository.findByUsername("John");
+        BaseUserEntity<Integer> result = userRepository.findByUsername("John");
         assertNotNull(result);
         assertEquals("John", result.getUsername());
     }

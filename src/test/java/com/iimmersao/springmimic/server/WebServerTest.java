@@ -23,9 +23,16 @@ import static org.junit.jupiter.api.Assertions.*;
 class WebServerTest {
 
     static WebServer server;
+    private static DatabaseClient databaseClient;
     final static int port = 9999;
 
-    private final HttpClient client = HttpClient.newHttpClient();
+    private static void closeDatabaseClient() throws Exception {
+        if (databaseClient instanceof AutoCloseable closeable) {
+            closeable.close();
+        }
+    }
+
+    private static HttpClient client;
 
     @BeforeAll
     static void startServer() throws Exception {
@@ -34,7 +41,7 @@ class WebServerTest {
         context.registerBean(ConfigLoader.class, config);
 
         // Create the appropriate DatabaseClient
-        DatabaseClient databaseClient;
+
         String dbType = config.get("db.type", "mysql").toLowerCase();
         switch (dbType) {
             case "mongo", "mongodb" -> databaseClient = new MongoDatabaseClient(config);
@@ -64,14 +71,17 @@ class WebServerTest {
 
         server = context.getBean(WebServer.class);
         server.start(1000, false);
+        client = HttpClient.newHttpClient();
 
         // Give the server a moment to bind the port
         Thread.sleep(500);
     }
 
     @AfterAll
-    static void stopServer() {
+    static void stopServer() throws Exception {
         server.stop();
+        closeDatabaseClient();
+        client.close();
     }
 
     private HttpRequest createRequest(String path, String method, String contentType, String body) {
@@ -98,7 +108,6 @@ class WebServerTest {
     void shouldHandleGetRequest() throws Exception {
         HttpRequest request = createRequest("http://localhost:" + port + "/echo/hello", "GET",
                 null, null);
-        HttpClient client = HttpClient.newHttpClient();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
         assertEquals(200, response.statusCode());
@@ -109,7 +118,6 @@ class WebServerTest {
     @Test
     void shouldHandlePostJson() throws Exception {
         String body = "{\"name\":\"Philip\"}";
-        HttpClient client = HttpClient.newHttpClient();
 
         HttpRequest request = createRequest("http://localhost:" + port + "/json", "POST",
                 "application/json", body);
@@ -127,7 +135,6 @@ class WebServerTest {
     @Test
     void shouldHandleQueryParamsCorrectly() throws Exception {
         String body = "{\"name\":\"Philip\"}";
-        HttpClient client = HttpClient.newHttpClient();
 
         HttpRequest request = createRequest("http://localhost:" + port + "/user/details?id=123&verbose=true&max=100",
                 "GET","application/json", body);
@@ -145,7 +152,6 @@ class WebServerTest {
     @Test
     void shouldHandleMissingOptionalQueryParam() throws Exception {
         // Arrange
-        HttpClient client = HttpClient.newHttpClient();
         String url = "http://localhost:" + port + "/user/details?id=999&max=100";
         URI uri = URI.create(url);  // No ?verbose param
 
@@ -166,7 +172,6 @@ class WebServerTest {
     void shouldHandleMultiplePathVariables() throws Exception {
         HttpRequest request = createRequest("http://localhost:" + port + "/posts/42/comments/7", "GET",
                 null, null);
-        HttpClient client = HttpClient.newHttpClient();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
         assertEquals(200, response.statusCode());
@@ -178,7 +183,6 @@ class WebServerTest {
     void shouldReturnNotFoundForUnknownRoute() throws Exception {
         HttpRequest request = createRequest("http://localhost:" + port + "/not-a-route", "GET",
                 null, null);
-        HttpClient client = HttpClient.newHttpClient();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
         assertEquals(404, response.statusCode());
@@ -187,7 +191,6 @@ class WebServerTest {
     @Test
     void shouldReturnBadRequestForInvalidBooleanParam() throws Exception {
         // Arrange
-        HttpClient client = HttpClient.newHttpClient();
         String url = "http://localhost:" + port + "/user/details?id=55&verbose=maybe&max=100";
         URI uri = URI.create(url);  // No ?verbose param
 
@@ -208,7 +211,6 @@ class WebServerTest {
     @Test
     void shouldReturnBadRequestForMissingRequiredParam() throws Exception {
         // Arrange
-        HttpClient client = HttpClient.newHttpClient();
         String url = "http://localhost:" + port + "/user/details?verbose=true"; // missing 'id'
         URI uri = URI.create(url);  // No ?verbose param
 
@@ -229,7 +231,6 @@ class WebServerTest {
     @Test
     void shouldReturnBadRequestForMalformedJson() throws Exception {
         String body = "{\"name\": }";
-        HttpClient client = HttpClient.newHttpClient();
 
         HttpRequest request = createRequest("http://localhost:" + port + "/json", "POST",
                 "application/json", body);
@@ -247,7 +248,6 @@ class WebServerTest {
     void shouldReturnMethodNotAllowedForWrongHttpMethod() throws Exception {
         HttpRequest request = createRequest("http://localhost:" + port + "/json", "GET",
                 null, null);
-        HttpClient client = HttpClient.newHttpClient();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
         assertEquals(404, response.statusCode());

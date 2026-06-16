@@ -8,6 +8,7 @@ import com.iimmersao.springmimic.database.DatabaseClient;
 import com.iimmersao.springmimic.database.H2DatabaseClient;
 import com.iimmersao.springmimic.database.MongoDatabaseClient;
 import com.iimmersao.springmimic.database.MySqlDatabaseClient;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -31,6 +32,7 @@ public class RouterTest {
     }
 
     private Router router;
+    private DatabaseClient databaseClient;
 
     @BeforeEach
     void setUp() {
@@ -38,7 +40,7 @@ public class RouterTest {
         String dbType = config.get("db.type", "mysql").toLowerCase();
 
         // Create the appropriate DatabaseClient
-        DatabaseClient databaseClient;
+
         switch (dbType) {
             case "mongo", "mongodb" -> databaseClient = new MongoDatabaseClient(config);
             case "mysql" -> databaseClient = new MySqlDatabaseClient(config);
@@ -58,6 +60,13 @@ public class RouterTest {
         context.injectDependencies();
         Set<Object> controllers = Set.of(new TestController());
         router.registerControllers(controllers);
+    }
+
+    @AfterEach
+    void tearDown() throws Exception {
+        if (databaseClient instanceof AutoCloseable closeable) {
+            closeable.close();
+        }
     }
 
     @Test

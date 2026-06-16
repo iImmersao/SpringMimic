@@ -25,8 +25,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @SuppressWarnings(value = "unused")
 class WebServerStaticFileTest {
 
+    private static void closeDatabaseClient() throws Exception {
+        if (databaseClient instanceof AutoCloseable closeable) {
+            closeable.close();
+        }
+    }
+
     private static Path tempDir;
     private static WebServer server;
+    private static DatabaseClient databaseClient;
+    private static HttpClient client;
     private static final int port = 8089;
 
     @BeforeAll
@@ -51,7 +59,7 @@ class WebServerStaticFileTest {
         ApplicationContext context = new ApplicationContext("com.iimmersao.springmimic");
         context.registerBean(ConfigLoader.class, config);
         // Create the appropriate DatabaseClient
-        DatabaseClient databaseClient;
+
         String dbType = config.get("db.type", "mysql").toLowerCase();
         switch (dbType) {
             case "mongo", "mongodb" -> databaseClient = new MongoDatabaseClient(config);
@@ -73,11 +81,14 @@ class WebServerStaticFileTest {
 
         server = context.getBean(WebServer.class);
         server.start(port);
+        client = HttpClient.newHttpClient();
     }
 
     @AfterAll
-    static void tearDown() {
+    static void tearDown() throws Exception {
         server.stop();
+        closeDatabaseClient();
+        client.close();
     }
 
     @Test
@@ -107,7 +118,6 @@ class WebServerStaticFileTest {
     }
 
     private HttpResponse<String> sendGet(String path) throws Exception {
-        HttpClient client = HttpClient.newHttpClient();
         URI uri = new URI("http://localhost:" + port + path);
         HttpRequest request = HttpRequest.newBuilder().uri(uri).GET().build();
         return client.send(request, HttpResponse.BodyHandlers.ofString());

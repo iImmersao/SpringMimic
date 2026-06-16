@@ -85,9 +85,10 @@ abstract class AbstractDatabaseClientNegativeTest {
         void shouldThrowForExistsByWithInvalidField() {
             UserRepository repo = createRepository(UserRepository.class);
 
-            Exception ex = assertThrows(RuntimeException.class, () ->
-                    repo.existsByFieldThatDoesNotExist("someValue")
-            );
+            Exception ex = assertThrows(RuntimeException.class, () -> {
+                boolean exists = repo.existsByFieldThatDoesNotExist("someValue");
+                fail("Expected invalid existsBy field to throw, but returned " + exists);
+            });
 
             assertTrue(ex.getMessage().contains("No such field") ||
                             ex.getMessage().contains("not found"),
@@ -98,9 +99,10 @@ abstract class AbstractDatabaseClientNegativeTest {
         void shouldThrowForCountByWithInvalidField() {
             UserRepository repo = createRepository(UserRepository.class);
 
-            Exception ex = assertThrows(RuntimeException.class, () ->
-                    repo.countByFieldThatDoesNotExist("someValue")
-            );
+            Exception ex = assertThrows(RuntimeException.class, () -> {
+                long count = repo.countByFieldThatDoesNotExist("someValue");
+                fail("Expected invalid countBy field to throw, but returned " + count);
+            });
 
             assertTrue(ex.getMessage().contains("No such field") ||
                             ex.getMessage().contains("not found"),

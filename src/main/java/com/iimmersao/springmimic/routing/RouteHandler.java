@@ -112,7 +112,6 @@ public class RouteHandler {
         try {
             // --- 1. Check if authentication is required ---
             boolean requiresAuth = method.isAnnotationPresent(Authenticated.class);
-            UserDetails user = null;
 
             if (requiresAuth) {
                 // Get Authorization header
@@ -134,7 +133,7 @@ public class RouteHandler {
 
                 // Authenticate user
                 Authenticator authenticator = context.getBean(Authenticator.class);
-                user = authenticator.authenticate(username, password);  // Throws UnauthorizedException if invalid
+                UserDetails user = authenticator.authenticate(username, password);  // Throws UnauthorizedException if invalid
 
                 // --- 2. Check roles if @RolesAllowed is present ---
                 if (method.isAnnotationPresent(RolesAllowed.class)) {

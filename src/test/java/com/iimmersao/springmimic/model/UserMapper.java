@@ -1,7 +1,7 @@
 package com.iimmersao.springmimic.model;
 
 public class UserMapper {
-    public static UserDTO toDTO(Object userEntity) {
+    public static UserDTO toDTO(BaseUserEntity<?> userEntity) {
         if (userEntity instanceof MySqlUserEntity u) {
             return new UserDTO(String.valueOf(u.getId()), u.getUsername(), u.getEmail());
         } else if (userEntity instanceof H2UserEntity u) {
@@ -12,7 +12,7 @@ public class UserMapper {
         throw new IllegalArgumentException("Unsupported entity type");
     }
 
-    public static BaseUserEntity toEntity(UserDTO dto, String dbType) {
+    public static BaseUserEntity<?> toEntity(UserDTO dto, String dbType) {
         if ("mysql".equalsIgnoreCase(dbType)) {
             MySqlUserEntity user = new MySqlUserEntity();
             if (dto.getId() != null) user.setId(Integer.parseInt(dto.getId()));

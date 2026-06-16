@@ -5,6 +5,8 @@ import com.iimmersao.springmimic.database.DatabaseClient;
 import com.iimmersao.springmimic.repository.CrudRepository;
 import com.iimmersao.springmimic.repository.RepositoryProxyFactory;
 import com.iimmersao.springmimic.repository.RepositoryUtils;
+import com.iimmersao.springmimic.transaction.TransactionManager;
+import com.iimmersao.springmimic.transaction.TransactionalProxyFactory;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
@@ -17,8 +19,10 @@ public class ApplicationContext {
     private final String basePackage;
     private final Map<Class<?>, Object> manualBeans = new HashMap<>();
     private final Map<Class<?>, Object> components = new HashMap<>();
+    private final Map<Class<?>, Object> transactionalProxies = new HashMap<>();
 
     private DatabaseClient dbClient;
+    private boolean transactionalProxiesInitialized;
 
     public ApplicationContext(String basePackage) {
         this.basePackage = basePackage;
@@ -60,14 +64,17 @@ public class ApplicationContext {
                 continue;
             }
 
-            if (isComponentClass(clazz)) {
+            if (isComponentClass(clazz) && !clazz.isInterface()) {
                 Object instance = createInstance(clazz);
                 components.put(clazz, instance);
             }
         }
+
+        initializeTransactionalProxies();
     }
 
     public void injectDependencies() {
+        initializeTransactionalProxies();
         for (Object instance : components.values()) {
             injectDependencies(instance);
         }
@@ -100,7 +107,7 @@ public class ApplicationContext {
             for (int i = 0; i < paramTypes.length; i++) {
                 Class<?> paramType = paramTypes[i];
 
-                Object paramInstance = manualBeans.getOrDefault(paramType, components.get(paramType));
+                Object paramInstance = resolveDependency(paramType);
 
                 // Recursively create if not found
                 if (paramInstance == null) {
@@ -161,8 +168,19 @@ public class ApplicationContext {
         Object bean = manualBeans.get(type);
         if (bean != null) return bean;
 
+        // Then prefer exact transactional proxies for interface-based beans
+        bean = transactionalProxies.get(type);
+        if (bean != null) return bean;
+
         // Look for assignable types in manual beans
         for (Map.Entry<Class<?>, Object> entry : manualBeans.entrySet()) {
+            if (type.isAssignableFrom(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+
+        // Then look for assignable transactional proxies
+        for (Map.Entry<Class<?>, Object> entry : transactionalProxies.entrySet()) {
             if (type.isAssignableFrom(entry.getKey())) {
                 return entry.getValue();
             }
@@ -178,6 +196,44 @@ public class ApplicationContext {
         return null;
     }
 
+    private void initializeTransactionalProxies() {
+        if (transactionalProxiesInitialized) {
+            return;
+        }
+
+        Object transactionManagerBean = manualBeans.get(TransactionManager.class);
+        if (!(transactionManagerBean instanceof TransactionManager transactionManager)) {
+            TransactionalProxyFactory proxyFactory = new TransactionalProxyFactory(null);
+            for (Object bean : components.values()) {
+                warnIfTransactionalProxySkipped(proxyFactory, bean);
+            }
+            transactionalProxiesInitialized = true;
+            return;
+        }
+
+        TransactionalProxyFactory proxyFactory = new TransactionalProxyFactory(transactionManager);
+        for (Object bean : components.values()) {
+            if (!proxyFactory.canCreateProxy(bean)) {
+                warnIfTransactionalProxySkipped(proxyFactory, bean);
+                continue;
+            }
+
+            Object proxy = proxyFactory.createProxy(bean);
+            for (Class<?> interfaceType : bean.getClass().getInterfaces()) {
+                transactionalProxies.put(interfaceType, proxy);
+            }
+        }
+
+        transactionalProxiesInitialized = true;
+    }
+
+    private void warnIfTransactionalProxySkipped(TransactionalProxyFactory proxyFactory, Object bean) {
+        String reason = proxyFactory.getProxySkipReason(bean);
+        if (reason != null) {
+            System.err.println("SpringMimic transaction warning: " + reason);
+        }
+    }
+
     public <T> T getBean(Class<T> type) {
         Object bean = resolveDependency(type);
         if (bean == null) {
@@ -185,7 +241,7 @@ public class ApplicationContext {
         }
         return type.cast(bean);
     }
-    
+
     public List<Object> getControllers() {
         return components.values().stream()
                 .filter(bean -> (bean.getClass().isAnnotationPresent(Controller.class)
@@ -198,12 +254,14 @@ public class ApplicationContext {
         Map<Class<?>, Object> allBeans = new HashMap<>();
         allBeans.putAll(manualBeans);
         allBeans.putAll(components);
+        allBeans.putAll(transactionalProxies);
         return allBeans.values();
     }
 
     public void addComponents(ApplicationContext otherContext) {
         this.manualBeans.putAll(otherContext.manualBeans);
         this.manualBeans.putAll(otherContext.components);
+        this.manualBeans.putAll(otherContext.transactionalProxies);
     }
 
     public Collection<Object> getServices() {
