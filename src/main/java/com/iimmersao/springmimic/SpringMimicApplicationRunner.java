@@ -26,7 +26,6 @@ import com.iimmersao.springmimic.transaction.TransactionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 
@@ -103,7 +102,8 @@ public class SpringMimicApplicationRunner {
             waitForStopSignal();
         } catch (Exception e) {
             System.err.println("Application failed to start: " + e.getMessage());
-            log.error(Arrays.toString(e.getStackTrace()));
+            e.printStackTrace(System.err);
+            log.error("Application failed to start", e);
         } finally {
             if (server != null) {
                 server.stop();
@@ -247,8 +247,8 @@ public class SpringMimicApplicationRunner {
     }
 
     private static void validateToyRdbConfiguration(ConfigLoader config) {
-        String dialect = config.get("database.dialect", "toyrdb").trim().toLowerCase(Locale.ROOT);
-        if (!"toyrdb".equals(dialect)) {
+        String dialect = configuredToyRdbDialect(config);
+        if (!isToyRdbDialect(dialect)) {
             throw new IllegalArgumentException("Unsupported ToyRDB database.dialect: " + dialect);
         }
 
@@ -256,6 +256,19 @@ public class SpringMimicApplicationRunner {
         if (!java.util.Set.of("none", "validate", "create", "update").contains(ddlAuto)) {
             throw new IllegalArgumentException("Unsupported ToyRDB database.ddl-auto: " + ddlAuto);
         }
+    }
+
+    private static String configuredToyRdbDialect(ConfigLoader config) {
+        String dialect = config.get("database.dialect", "");
+        if (dialect == null || dialect.isBlank()) {
+            dialect = config.get("database.platform", "toyrdb");
+        }
+        return dialect.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static boolean isToyRdbDialect(String dialect) {
+        return "toyrdb".equals(dialect)
+                || "com.iimmersao.toyrdb.hibernate.toyrdbdialect".equals(dialect);
     }
 
     private static int transactionTimeout(ConfigLoader config) {

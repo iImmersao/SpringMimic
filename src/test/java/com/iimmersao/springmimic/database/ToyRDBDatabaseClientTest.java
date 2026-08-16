@@ -170,6 +170,27 @@ class ToyRDBDatabaseClientTest {
     }
 
     @Test
+    void shouldMapNumericGeneratedIdToStringEntityId() throws SQLException {
+        String schemaUrl = jdbcUrl("string-id.data");
+        createSchema(schemaUrl);
+        DatabaseClient stringIdClient = new ToyRDBDatabaseClient(config(Map.of(
+                "database.url", schemaUrl,
+                "database.username", "",
+                "database.password", ""
+        )));
+        StringIdUser user = new StringIdUser("string-id", "string-id@example.com");
+
+        stringIdClient.save(user);
+
+        assertEquals("1", user.id);
+        Optional<StringIdUser> found = stringIdClient.findById(StringIdUser.class, user.id);
+        assertTrue(found.isPresent());
+        assertEquals("1", found.get().id);
+        assertEquals("string-id", found.get().username);
+        assertEquals(List.of("1"), stringIdClient.findAll(StringIdUser.class).stream().map(u -> u.id).toList());
+    }
+
+    @Test
     void shouldReturnTrueWhenUserExistsByUsername() {
         client.save(new User("jdoe", "jdoe@example.com"));
 
@@ -335,6 +356,30 @@ class ToyRDBDatabaseClientTest {
         }
 
         public User(String username, String email) {
+            this.username = username;
+            this.email = email;
+        }
+    }
+
+    @Entity
+    @Table(name = "users")
+    @SuppressWarnings("unused")
+    public static class StringIdUser {
+        @Id
+        @GeneratedValue
+        @Column(name = "id")
+        public String id;
+
+        @Column(name = "username")
+        public String username;
+
+        @Column(name = "email")
+        public String email;
+
+        public StringIdUser() {
+        }
+
+        public StringIdUser(String username, String email) {
             this.username = username;
             this.email = email;
         }

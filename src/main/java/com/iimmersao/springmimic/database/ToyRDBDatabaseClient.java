@@ -45,8 +45,8 @@ public class ToyRDBDatabaseClient extends JdbcDatabaseClient {
     }
 
     private static void validateConfiguration(ConfigLoader config) {
-        String dialect = config.get("database.dialect", "toyrdb").trim().toLowerCase(Locale.ROOT);
-        if (!"toyrdb".equals(dialect)) {
+        String dialect = configuredDialect(config);
+        if (!isToyRdbDialect(dialect)) {
             throw new IllegalArgumentException("Unsupported ToyRDB database.dialect: " + dialect);
         }
 
@@ -54,6 +54,19 @@ public class ToyRDBDatabaseClient extends JdbcDatabaseClient {
         if (!Set.of("none", "validate", "create", "update").contains(ddlAuto)) {
             throw new IllegalArgumentException("Unsupported ToyRDB database.ddl-auto: " + ddlAuto);
         }
+    }
+
+    private static String configuredDialect(ConfigLoader config) {
+        String dialect = config.get("database.dialect", "");
+        if (dialect == null || dialect.isBlank()) {
+            dialect = config.get("database.platform", "toyrdb");
+        }
+        return dialect.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static boolean isToyRdbDialect(String dialect) {
+        return "toyrdb".equals(dialect)
+                || "com.iimmersao.toyrdb.hibernate.toyrdbdialect".equals(dialect);
     }
 
     private static Set<Class<?>> scanConfiguredEntities(ConfigLoader config) {

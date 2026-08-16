@@ -56,6 +56,37 @@ class SpringMimicApplicationRunnerToyRDBTest {
         );
     }
 
+    @Test
+    void acceptsToyRdbDatabasePlatformAlias() {
+        SpringMimicApplicationRunner.DatabaseSetup setup =
+                SpringMimicApplicationRunner.createDatabaseSetup(config(Map.of(
+                        "db.type", "toyrdb",
+                        "database.url", "jdbc:h2:mem:toyrdb-platform",
+                        "database.username", "sa",
+                        "database.password", "",
+                        "database.driver-class-name", "org.h2.Driver",
+                        "database.platform", "com.iimmersao.toyrdb.hibernate.ToyRDBDialect"
+                )));
+
+        assertInstanceOf(ToyRDBDatabaseClient.class, setup.databaseClient());
+        assertInstanceOf(JdbcTransactionManager.class, setup.transactionManager());
+    }
+
+    @Test
+    void rejectsUnsupportedToyRdbDatabasePlatformAlias() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> SpringMimicApplicationRunner.createDatabaseSetup(config(Map.of(
+                        "db.type", "toyrdb",
+                        "database.url", "jdbc:h2:mem:toyrdb-platform",
+                        "database.username", "sa",
+                        "database.password", "",
+                        "database.driver-class-name", "org.h2.Driver",
+                        "database.platform", "mysql"
+                )))
+        );
+    }
+
     private static ConfigLoader config(Map<String, String> values) {
         return new ConfigLoader() {
             @Override

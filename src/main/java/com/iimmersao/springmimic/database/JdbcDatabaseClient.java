@@ -15,6 +15,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -464,7 +467,8 @@ public class JdbcDatabaseClient implements DatabaseClient {
         T instance = clazz.getDeclaredConstructor().newInstance();
         for (Field field : clazz.getDeclaredFields()) {
             field.setAccessible(true);
-            field.set(instance, rs.getObject(getColumnName(field)));
+            Object value = rs.getObject(getColumnName(field));
+            field.set(instance, convertToFieldType(value, field.getType()));
         }
         return instance;
     }
@@ -491,6 +495,64 @@ public class JdbcDatabaseClient implements DatabaseClient {
         }
         if (boxedTargetType == String.class) {
             return value.toString();
+        }
+        if (value instanceof String text) {
+            return convertStringToFieldType(text, boxedTargetType);
+        }
+        if (boxedTargetType == LocalDate.class && value instanceof java.sql.Date date) {
+            return date.toLocalDate();
+        }
+        if (boxedTargetType == LocalTime.class && value instanceof java.sql.Time time) {
+            return time.toLocalTime();
+        }
+        if (boxedTargetType == LocalDateTime.class && value instanceof java.sql.Timestamp timestamp) {
+            return timestamp.toLocalDateTime();
+        }
+        if (boxedTargetType == Short.class) {
+            return ((Number) value).shortValue();
+        }
+        if (boxedTargetType == Byte.class) {
+            return ((Number) value).byteValue();
+        }
+        if (boxedTargetType == Double.class) {
+            return ((Number) value).doubleValue();
+        }
+        if (boxedTargetType == Float.class) {
+            return ((Number) value).floatValue();
+        }
+        return value;
+    }
+
+    private Object convertStringToFieldType(String value, Class<?> targetType) {
+        if (targetType == Integer.class) {
+            return Integer.parseInt(value);
+        }
+        if (targetType == Long.class) {
+            return Long.parseLong(value);
+        }
+        if (targetType == Short.class) {
+            return Short.parseShort(value);
+        }
+        if (targetType == Byte.class) {
+            return Byte.parseByte(value);
+        }
+        if (targetType == Double.class) {
+            return Double.parseDouble(value);
+        }
+        if (targetType == Float.class) {
+            return Float.parseFloat(value);
+        }
+        if (targetType == Boolean.class) {
+            return Boolean.parseBoolean(value);
+        }
+        if (targetType == LocalDate.class) {
+            return LocalDate.parse(value);
+        }
+        if (targetType == LocalTime.class) {
+            return LocalTime.parse(value);
+        }
+        if (targetType == LocalDateTime.class) {
+            return LocalDateTime.parse(value);
         }
         return value;
     }
