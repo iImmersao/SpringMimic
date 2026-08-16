@@ -9,9 +9,11 @@ import com.iimmersao.springmimic.client.RestClient;
 import com.iimmersao.springmimic.core.ApplicationContext;
 import com.iimmersao.springmimic.core.ConfigLoader;
 import com.iimmersao.springmimic.database.DatabaseClient;
+import com.iimmersao.springmimic.database.DriverCheck;
 import com.iimmersao.springmimic.database.H2DatabaseClient;
 import com.iimmersao.springmimic.database.MongoDatabaseClient;
 import com.iimmersao.springmimic.database.MySqlDatabaseClient;
+import com.iimmersao.springmimic.database.ToyRDBDatabaseClient;
 import com.iimmersao.springmimic.database.jdbc.DriverManagerConnectionProvider;
 import com.iimmersao.springmimic.database.jdbc.JdbcConnectionProvider;
 import com.iimmersao.springmimic.database.jdbc.TransactionAwareConnectionProvider;
@@ -189,17 +191,19 @@ public class SpringMimicApplicationRunner {
         }
     }
 
-    private static DatabaseSetup createDatabaseSetup(ConfigLoader config) {
+    static DatabaseSetup createDatabaseSetup(ConfigLoader config) {
         String dbType = config.get("db.type", "mysql").toLowerCase();
         return switch (dbType) {
             case "mongo", "mongodb" -> new DatabaseSetup(new MongoDatabaseClient(config), null);
             case "mysql" -> createMySqlSetup(config);
             case "h2" -> createH2Setup(config);
+            case "toyrdb" -> createToyRdbSetup(config);
             default -> throw new IllegalArgumentException("Unsupported database type: " + dbType);
         };
     }
 
     private static DatabaseSetup createMySqlSetup(ConfigLoader config) {
+        DriverCheck.loadDriver(config, "mysql");
         JdbcConnectionProvider rawProvider = new DriverManagerConnectionProvider(
                 config.get("database.url"),
                 config.get("database.username"),
@@ -210,6 +214,7 @@ public class SpringMimicApplicationRunner {
     }
 
     private static DatabaseSetup createH2Setup(ConfigLoader config) {
+        DriverCheck.loadDriver(config, "h2");
         JdbcConnectionProvider rawProvider = new DriverManagerConnectionProvider(
                 config.get("h2.url"),
                 config.get("h2.username"),
@@ -217,6 +222,30 @@ public class SpringMimicApplicationRunner {
         );
         DatabaseClient databaseClient = new H2DatabaseClient(config, new TransactionAwareConnectionProvider(rawProvider));
         return new DatabaseSetup(databaseClient, new JdbcTransactionManager(rawProvider, transactionTimeout(config)));
+    }
+
+    private static DatabaseSetup createToyRdbSetup(ConfigLoader config) {
+        validateToyRdbConfiguration(config);
+        DriverCheck.loadDriver(config, "toyrdb");
+        JdbcConnectionProvider rawProvider = new DriverManagerConnectionProvider(
+                config.get("database.url"),
+                config.get("database.username"),
+                config.get("database.password")
+        );
+        DatabaseClient databaseClient = new ToyRDBDatabaseClient(new TransactionAwareConnectionProvider(rawProvider));
+        return new DatabaseSetup(databaseClient, new JdbcTransactionManager(rawProvider, transactionTimeout(config)));
+    }
+
+    private static void validateToyRdbConfiguration(ConfigLoader config) {
+        String dialect = config.get("database.dialect", "toyrdb").trim().toLowerCase(Locale.ROOT);
+        if (!"toyrdb".equals(dialect)) {
+            throw new IllegalArgumentException("Unsupported ToyRDB database.dialect: " + dialect);
+        }
+
+        String ddlAuto = config.get("database.ddl-auto", "none").trim().toLowerCase(Locale.ROOT);
+        if (!"none".equals(ddlAuto)) {
+            throw new IllegalArgumentException("Unsupported ToyRDB database.ddl-auto: " + ddlAuto);
+        }
     }
 
     private static int transactionTimeout(ConfigLoader config) {
@@ -231,5 +260,5 @@ public class SpringMimicApplicationRunner {
         return mainClass.getPackageName(); // fallback
     }
 
-    private record DatabaseSetup(DatabaseClient databaseClient, TransactionManager transactionManager) {}
+    record DatabaseSetup(DatabaseClient databaseClient, TransactionManager transactionManager) {}
 }

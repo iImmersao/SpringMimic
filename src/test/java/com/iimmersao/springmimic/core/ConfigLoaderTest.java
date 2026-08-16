@@ -52,4 +52,28 @@ class ConfigLoaderTest {
         assertFalse(dbType.contains("#"), "Config value should not contain inline comments");
         assertEquals("mysql", dbType, "Config value should be trimmed and comments removed");
     }
+
+    @Test
+    void shouldLoadToyRdbPropertiesProfile() {
+        ConfigLoader toyRdbConfig = new ConfigLoader("toyrdb");
+
+        assertEquals("toyrdb", toyRdbConfig.get("db.type"));
+        assertEquals("jdbc:toyrdb:C:/data/springmimic-test.data", toyRdbConfig.get("database.url"));
+        assertEquals("com.iimmersao.toyrdb.jdbc.ToyRDBDriver", toyRdbConfig.get("database.driver-class-name"));
+        assertEquals("toyrdb", toyRdbConfig.get("database.dialect"));
+        assertEquals("none", toyRdbConfig.get("database.ddl-auto"));
+        assertEquals(4, toyRdbConfig.getInt("database.pool.maximum-size", 0));
+    }
+
+    @Test
+    void shouldLoadToyRdbYamlProfile() {
+        ConfigLoader toyRdbConfig = new ConfigLoader("toyrdb-yaml");
+
+        assertEquals("toyrdb", toyRdbConfig.get("db.type"));
+        assertEquals("jdbc:toyrdb:C:/data/springmimic-yaml-test.data", toyRdbConfig.get("database.url"));
+        assertEquals("com.iimmersao.toyrdb.jdbc.ToyRDBDriver", toyRdbConfig.get("database.driver-class-name"));
+        assertEquals("toyrdb", toyRdbConfig.get("database.dialect"));
+        assertEquals("none", toyRdbConfig.get("database.ddl-auto"));
+        assertEquals(4, toyRdbConfig.getInt("database.pool.maximum-size", 0));
+    }
 }

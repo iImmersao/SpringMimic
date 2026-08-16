@@ -109,6 +109,12 @@
             <version>2.3.232</version>
             <scope>runtime</scope>
         </dependency>
+        <dependency>
+            <groupId>com.iimmersao</groupId>
+            <artifactId>toyrdb</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
 
         <!-- SLF4J API -->
         <dependency>

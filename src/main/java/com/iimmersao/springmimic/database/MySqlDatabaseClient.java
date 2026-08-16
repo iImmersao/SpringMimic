@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 public class MySqlDatabaseClient implements DatabaseClient {
 
     private final JdbcConnectionProvider connectionProvider;
+    private final String databaseName;
 
     public MySqlDatabaseClient(ConfigLoader config) {
         this(new TransactionAwareConnectionProvider(new DriverManagerConnectionProvider(
@@ -31,8 +32,17 @@ public class MySqlDatabaseClient implements DatabaseClient {
         this(new SingleConnectionProvider(connection));
     }
 
+    protected MySqlDatabaseClient(Connection connection, String databaseName) {
+        this(new SingleConnectionProvider(connection), databaseName);
+    }
+
     public MySqlDatabaseClient(JdbcConnectionProvider connectionProvider) {
+        this(connectionProvider, "MySQL");
+    }
+
+    protected MySqlDatabaseClient(JdbcConnectionProvider connectionProvider, String databaseName) {
         this.connectionProvider = connectionProvider;
+        this.databaseName = databaseName;
     }
 
     @Override
@@ -364,7 +374,7 @@ public class MySqlDatabaseClient implements DatabaseClient {
         try {
             connectionProvider.releaseConnection(connection);
         } catch (SQLException e) {
-            throw new DatabaseException("Failed to release MySQL connection", e);
+            throw new DatabaseException("Failed to release " + databaseName + " connection", e);
         }
     }
 

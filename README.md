@@ -1,6 +1,6 @@
 # Spring Mimic Framework
 
-A lightweight, annotation-driven Java framework inspired by Spring Boot — designed to simplify web development with minimal dependencies. Built to support REST APIs, dependency injection, database access (MySQL, MongoDB, H2), component scanning, authentication, and more.
+A lightweight, annotation-driven Java framework inspired by Spring Boot — designed to simplify web development with minimal dependencies. Built to support REST APIs, dependency injection, database access (MySQL, MongoDB, H2, ToyRDB), component scanning, authentication, and more.
 
 ---
 
@@ -10,7 +10,7 @@ A lightweight, annotation-driven Java framework inspired by Spring Boot — desi
 - ✅ Dependency Injection with `@Component`, `@Inject`, etc.
 - ✅ In-memory web server (NanoHTTPD)
 - ✅ Built-in support for:
-  - **MySQL**, **MongoDB**, and **H2** database access
+  - **MySQL**, **MongoDB**, **H2**, and **ToyRDB** database access
   - CRUD-style dynamic repository interfaces (`CrudRepository`)
   - Pagination, filtering, sorting
   - JDBC transaction support for H2 and MySQL with `@Transactional`
@@ -119,6 +119,7 @@ static.path=public
 db.type=mongodb
 #db.type=h2
 #db.type=mysql
+#db.type=toyrdb
 
 # MongoDB
 mongodb.uri=mongodb://localhost:27017
@@ -128,6 +129,15 @@ mongodb.database=myappmongodb
 database.url=jdbc:mysql://localhost:3306/myappmysqldb
 database.username=root
 database.password=secret
+#database.driver-class-name=com.mysql.cj.jdbc.Driver
+#database.dialect=mysql
+
+# ToyRDB
+#database.url=jdbc:toyrdb:C:/data/myapp.data
+#database.driver-class-name=com.iimmersao.toyrdb.jdbc.ToyRDBDriver
+#database.dialect=toyrdb
+#database.ddl-auto=none
+#database.pool.maximum-size=4
 
 # H2 (default for testing)
 h2.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE

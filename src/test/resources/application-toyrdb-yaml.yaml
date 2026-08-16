@@ -1,0 +1,11 @@
+db:
+  type: "toyrdb"
+database:
+  url: "jdbc:toyrdb:C:/data/springmimic-yaml-test.data"
+  username: ""
+  password: ""
+  driver-class-name: "com.iimmersao.toyrdb.jdbc.ToyRDBDriver"
+  dialect: "toyrdb"
+  ddl-auto: "none"
+  pool:
+    maximum-size: 4
