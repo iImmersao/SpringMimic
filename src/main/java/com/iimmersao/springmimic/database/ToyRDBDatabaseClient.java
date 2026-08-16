@@ -7,15 +7,23 @@ import com.iimmersao.springmimic.database.jdbc.DriverManagerConnectionProvider;
 import com.iimmersao.springmimic.database.jdbc.JdbcConnectionProvider;
 import com.iimmersao.springmimic.database.jdbc.SingleConnectionProvider;
 import com.iimmersao.springmimic.database.jdbc.TransactionAwareConnectionProvider;
+import com.iimmersao.springmimic.database.schema.ToyRdbSchemaManager;
 
 import java.sql.Connection;
+import java.util.Arrays;
 import java.util.Locale;
+import java.util.Set;
 
 @Bean
 public class ToyRDBDatabaseClient extends JdbcDatabaseClient {
 
     public ToyRDBDatabaseClient(ConfigLoader config) {
+        this(config, scanConfiguredEntities(config));
+    }
+
+    public ToyRDBDatabaseClient(ConfigLoader config, Set<Class<?>> entityClasses) {
         this(createConnectionProvider(config));
+        manageSchema(config, entityClasses);
     }
 
     public ToyRDBDatabaseClient(Connection connection) {
@@ -43,8 +51,27 @@ public class ToyRDBDatabaseClient extends JdbcDatabaseClient {
         }
 
         String ddlAuto = config.get("database.ddl-auto", "none").trim().toLowerCase(Locale.ROOT);
-        if (!"none".equals(ddlAuto)) {
+        if (!Set.of("none", "validate", "create", "update").contains(ddlAuto)) {
             throw new IllegalArgumentException("Unsupported ToyRDB database.ddl-auto: " + ddlAuto);
         }
+    }
+
+    private static Set<Class<?>> scanConfiguredEntities(ConfigLoader config) {
+        String packages = config.get("database.schema.packages", "");
+        if (packages == null || packages.isBlank()) {
+            return Set.of();
+        }
+        String[] basePackages = Arrays.stream(packages.split(","))
+                .map(String::trim)
+                .filter(packageName -> !packageName.isEmpty())
+                .toArray(String[]::new);
+        if (basePackages.length == 0) {
+            return Set.of();
+        }
+        return new EntityScanner().scanEntities(basePackages);
+    }
+
+    private void manageSchema(ConfigLoader config, Set<Class<?>> entityClasses) {
+        new ToyRdbSchemaManager(getConnectionProvider()).apply(config.get("database.ddl-auto", "none"), entityClasses);
     }
 }

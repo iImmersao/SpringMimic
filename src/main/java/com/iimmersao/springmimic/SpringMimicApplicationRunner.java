@@ -10,6 +10,7 @@ import com.iimmersao.springmimic.core.ApplicationContext;
 import com.iimmersao.springmimic.core.ConfigLoader;
 import com.iimmersao.springmimic.database.DatabaseClient;
 import com.iimmersao.springmimic.database.DriverCheck;
+import com.iimmersao.springmimic.database.EntityScanner;
 import com.iimmersao.springmimic.database.H2DatabaseClient;
 import com.iimmersao.springmimic.database.MongoDatabaseClient;
 import com.iimmersao.springmimic.database.MySqlDatabaseClient;
@@ -51,7 +52,7 @@ public class SpringMimicApplicationRunner {
             configureLogging(config);
 
             System.out.println("Setting up database access");
-            DatabaseSetup databaseSetup = createDatabaseSetup(config);
+            DatabaseSetup databaseSetup = createDatabaseSetup(config, basePackage);
             databaseClient = databaseSetup.databaseClient();
             TransactionManager transactionManager = databaseSetup.transactionManager();
             System.out.println("Set up DatabaseClient as: " + databaseClient.getClass().getName());
@@ -192,12 +193,16 @@ public class SpringMimicApplicationRunner {
     }
 
     static DatabaseSetup createDatabaseSetup(ConfigLoader config) {
+        return createDatabaseSetup(config, null);
+    }
+
+    static DatabaseSetup createDatabaseSetup(ConfigLoader config, String basePackage) {
         String dbType = config.get("db.type", "mysql").toLowerCase();
         return switch (dbType) {
             case "mongo", "mongodb" -> new DatabaseSetup(new MongoDatabaseClient(config), null);
             case "mysql" -> createMySqlSetup(config);
             case "h2" -> createH2Setup(config);
-            case "toyrdb" -> createToyRdbSetup(config);
+            case "toyrdb" -> createToyRdbSetup(config, basePackage);
             default -> throw new IllegalArgumentException("Unsupported database type: " + dbType);
         };
     }
@@ -224,7 +229,7 @@ public class SpringMimicApplicationRunner {
         return new DatabaseSetup(databaseClient, new JdbcTransactionManager(rawProvider, transactionTimeout(config)));
     }
 
-    private static DatabaseSetup createToyRdbSetup(ConfigLoader config) {
+    private static DatabaseSetup createToyRdbSetup(ConfigLoader config, String basePackage) {
         validateToyRdbConfiguration(config);
         DriverCheck.loadDriver(config, "toyrdb");
         JdbcConnectionProvider rawProvider = new DriverManagerConnectionProvider(
@@ -232,7 +237,12 @@ public class SpringMimicApplicationRunner {
                 config.get("database.username"),
                 config.get("database.password")
         );
-        DatabaseClient databaseClient = new ToyRDBDatabaseClient(new TransactionAwareConnectionProvider(rawProvider));
+        DatabaseClient databaseClient = new ToyRDBDatabaseClient(
+                config,
+                basePackage == null || basePackage.isBlank()
+                        ? java.util.Set.of()
+                        : new EntityScanner().scanEntities(basePackage)
+        );
         return new DatabaseSetup(databaseClient, new JdbcTransactionManager(rawProvider, transactionTimeout(config)));
     }
 
@@ -243,7 +253,7 @@ public class SpringMimicApplicationRunner {
         }
 
         String ddlAuto = config.get("database.ddl-auto", "none").trim().toLowerCase(Locale.ROOT);
-        if (!"none".equals(ddlAuto)) {
+        if (!java.util.Set.of("none", "validate", "create", "update").contains(ddlAuto)) {
             throw new IllegalArgumentException("Unsupported ToyRDB database.ddl-auto: " + ddlAuto);
         }
     }

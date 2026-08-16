@@ -136,7 +136,8 @@ database.password=secret
 #database.url=jdbc:toyrdb:C:/data/myapp.data
 #database.driver-class-name=com.iimmersao.toyrdb.jdbc.ToyRDBDriver
 #database.dialect=toyrdb
-#database.ddl-auto=none
+#database.ddl-auto=none      # none, validate, create, or update
+#database.schema.packages=com.example.myapp
 #database.pool.maximum-size=4
 
 # H2 (default for testing)
@@ -144,6 +145,15 @@ h2.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
 h2.username=sa
 h2.password=password
 ```
+
+ToyRDB schema modes:
+
+- `none`: leave the database schema unchanged.
+- `validate`: fail startup if mapped entity tables or columns are missing.
+- `create`: drop and recreate mapped entity tables.
+- `update`: create missing mapped tables and add missing columns.
+
+When SpringMimic starts through `SpringMimicApplication.run(...)`, ToyRDB schema management uses the application base package for entity scanning. For direct client usage, set `database.schema.packages` or pass entity classes to `ToyRDBDatabaseClient`.
 ### 7. Use JDBC Transactions
 
 SpringMimic supports declarative JDBC transactions for H2 and MySQL. MongoDB transactions are not part of the current MVP.

@@ -36,7 +36,7 @@ class SpringMimicApplicationRunnerToyRDBTest {
                         "database.username", "sa",
                         "database.password", "",
                         "database.driver-class-name", "org.h2.Driver",
-                        "database.ddl-auto", "create"
+                        "database.ddl-auto", "create-drop"
                 )))
         );
     }

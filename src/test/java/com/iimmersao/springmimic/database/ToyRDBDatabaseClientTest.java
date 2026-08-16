@@ -6,6 +6,7 @@ import com.iimmersao.springmimic.annotations.GeneratedValue;
 import com.iimmersao.springmimic.annotations.Id;
 import com.iimmersao.springmimic.annotations.Table;
 import com.iimmersao.springmimic.core.ConfigLoader;
+import com.iimmersao.springmimic.exceptions.DatabaseException;
 import com.iimmersao.springmimic.web.PageRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -45,7 +47,7 @@ class ToyRDBDatabaseClientTest {
                 "database.password", ""
         ));
         client = new ToyRDBDatabaseClient(config);
-        createSchema();
+        createSchema(jdbcUrl);
     }
 
     @Test
@@ -189,30 +191,112 @@ class ToyRDBDatabaseClientTest {
     }
 
     @Test
+    void shouldCreateSchemaWhenDdlAutoIsCreate() {
+        String schemaUrl = jdbcUrl("schema-create.data");
+        DatabaseClient schemaClient = new ToyRDBDatabaseClient(config(Map.of(
+                "database.url", schemaUrl,
+                "database.username", "",
+                "database.password", "",
+                "database.ddl-auto", "create"
+        )), Set.of(User.class));
+
+        User user = new User("created", "created@example.com");
+        schemaClient.save(user);
+
+        assertNotNull(user.id);
+        assertTrue(schemaClient.findById(User.class, user.id).isPresent());
+    }
+
+    @Test
+    void shouldValidateSchemaWhenDdlAutoIsValidate() throws SQLException {
+        String schemaUrl = jdbcUrl("schema-validate.data");
+        createSchema(schemaUrl);
+
+        assertNotNull(new ToyRDBDatabaseClient(config(Map.of(
+                "database.url", schemaUrl,
+                "database.username", "",
+                "database.password", "",
+                "database.ddl-auto", "validate"
+        )), Set.of(User.class)));
+    }
+
+    @Test
+    void shouldFailValidateWhenTableIsMissing() {
+        String schemaUrl = jdbcUrl("schema-validate-missing.data");
+
+        DatabaseException exception = assertThrows(
+                DatabaseException.class,
+                () -> new ToyRDBDatabaseClient(config(Map.of(
+                        "database.url", schemaUrl,
+                        "database.username", "",
+                        "database.password", "",
+                        "database.ddl-auto", "validate"
+                )), Set.of(User.class))
+        );
+        assertEquals("ToyRDB schema validation failed: missing table users", exception.getMessage());
+    }
+
+    @Test
+    void shouldUpdateSchemaWhenDdlAutoIsUpdate() throws SQLException {
+        String schemaUrl = jdbcUrl("schema-update.data");
+        createPartialSchema(schemaUrl);
+        DatabaseClient schemaClient = new ToyRDBDatabaseClient(config(Map.of(
+                "database.url", schemaUrl,
+                "database.username", "",
+                "database.password", "",
+                "database.ddl-auto", "update"
+        )), Set.of(User.class));
+
+        User user = new User("updated", "updated@example.com");
+        schemaClient.save(user);
+
+        Optional<User> found = schemaClient.findById(User.class, user.id);
+        assertTrue(found.isPresent());
+        assertEquals("updated@example.com", found.get().email);
+    }
+
+    @Test
     void shouldRejectUnsupportedDdlAutoMode() {
         ConfigLoader config = config(Map.of(
                 "database.url", jdbcUrl,
                 "database.username", "",
                 "database.password", "",
-                "database.ddl-auto", "create"
+                "database.ddl-auto", "create-drop"
         ));
 
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> new ToyRDBDatabaseClient(config)
+                () -> new ToyRDBDatabaseClient(config, Set.of(User.class))
         );
-        assertEquals("Unsupported ToyRDB database.ddl-auto: create", exception.getMessage());
+        assertEquals("Unsupported ToyRDB database.ddl-auto: create-drop", exception.getMessage());
     }
 
-    private void createSchema() throws SQLException {
+    private String jdbcUrl(String fileName) {
+        return "jdbc:toyrdb:" + tempDir.resolve(fileName).toAbsolutePath();
+    }
+
+    private void createSchema(String schemaUrl) throws SQLException {
         DriverCheck.loadDriver(config(Map.of()), "toyrdb");
-        try (Connection connection = DriverManager.getConnection(jdbcUrl, "", "");
+        try (Connection connection = DriverManager.getConnection(schemaUrl, "", "");
              Statement statement = connection.createStatement()) {
             statement.executeUpdate("""
                     CREATE TABLE users (
                       id INT AUTO_INCREMENT PRIMARY KEY,
                       username TEXT,
                       email TEXT
+                    )
+                    """);
+        }
+    }
+
+    private void createPartialSchema(String schemaUrl) throws SQLException {
+        DriverCheck.loadDriver(config(Map.of()), "toyrdb");
+        try (Connection connection = DriverManager.getConnection(schemaUrl, "", "");
+             Statement statement = connection.createStatement()) {
+            statement.executeUpdate("""
+                    CREATE TABLE users (
+                      id INT AUTO_INCREMENT PRIMARY KEY,
+                      username TEXT
                     )
                     """);
         }

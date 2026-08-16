@@ -35,6 +35,10 @@ public class JdbcDatabaseClient implements DatabaseClient {
         this.dialect = dialect;
     }
 
+    protected JdbcConnectionProvider getConnectionProvider() {
+        return connectionProvider;
+    }
+
     @Override
     public <T> Optional<T> findById(Class<T> clazz, Object id) {
         if (dialect.invalidFindByIdReturnsEmpty() && !isValidId(clazz, id)) {
